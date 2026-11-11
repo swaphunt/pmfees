@@ -282,27 +282,27 @@ if __name__ == "__main__":
 
 
 @pytest.mark.parametrize(
-    ("platform", "contracts", "kwargs"),
+    ("platform", "contracts", "category"),
     [
-        ("kalshi", "1.5", {}),
-        ("kalshi", "0.99", {}),
-        ("polymarket-us", "153.845", {}),
-        ("polymarket", "19.2307001", {"category": "Crypto"}),
+        ("kalshi", "1.5", None),
+        ("kalshi", "0.99", None),
+        ("polymarket-us", "153.845", None),
+        ("polymarket", "19.2307001", "Crypto"),
     ],
 )
-def test_contracts_off_the_platform_step_raise(platform, contracts, kwargs):
+def test_contracts_off_the_platform_step_raise(platform: str, contracts: str, category: str | None) -> None:
     with pytest.raises(ValueError, match="contracts must be a multiple of"):
-        fee(platform, "0.50", contracts, **kwargs)
+        fee(platform, "0.50", contracts, category=category)
 
 
 @pytest.mark.parametrize(
-    ("platform", "contracts", "kwargs"),
+    ("platform", "contracts", "category"),
     [
-        ("kalshi", "7", {}),
-        ("kalshi", "7.0", {}),
-        ("polymarket-us", "153.84", {}),
-        ("polymarket", "19.2307", {"category": "Crypto"}),
+        ("kalshi", "7", None),
+        ("kalshi", "7.0", None),
+        ("polymarket-us", "153.84", None),
+        ("polymarket", "19.2307", "Crypto"),
     ],
 )
-def test_contracts_on_the_platform_step_are_fine(platform, contracts, kwargs):
-    assert fee(platform, "0.50", contracts, **kwargs).fee >= 0
+def test_contracts_on_the_platform_step_are_fine(platform: str, contracts: str, category: str | None) -> None:
+    assert fee(platform, "0.50", contracts, category=category).fee >= 0
