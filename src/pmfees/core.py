@@ -159,6 +159,25 @@ def _global_category(rates: Rates, category: str | None) -> tuple[str, Decimal]:
     raise ValueError(f"unknown polymarket.com category {category!r}; use one of: {', '.join(cats)}")
 
 
+# Smallest order size step per platform (official docs):
+# * kalshi: whole contracts.
+# * polymarket-us: 0.01 contracts on most markets ("Fractional Contracts",
+#   https://docs.polymarket.us/learn/trading/basics/fractional-shares.md); a few
+#   markets, mostly futures, trade whole contracts only, which pmfees cannot see.
+# * polymarket (polymarket.com): shares are six-decimal units, e.g. a market buy of
+#   19.2307 shares (https://docs.polymarket.com/trading/place-orders.md).
+CONTRACT_STEP: dict[str, Decimal] = {
+    "kalshi": Decimal("1"),
+    "polymarket-us": Decimal("0.01"),
+    "polymarket": Decimal("0.000001"),
+}
+CONTRACT_STEP_TEXT: dict[str, str] = {
+    "kalshi": "whole contracts only, e.g. 7",
+    "polymarket-us": "steps of 0.01 contracts, e.g. 153.84",
+    "polymarket": "up to 6 decimals, e.g. 19.2307",
+}
+
+
 def fee(
     platform: str,
     price: Number,
@@ -196,6 +215,9 @@ def fee(
         raise ValueError("price must be between 0 and 1 (exclusive), in dollars")
     if c <= 0:
         raise ValueError("contracts must be > 0")
+    step = CONTRACT_STEP[key]
+    if c % step != 0:
+        raise ValueError(f"contracts must be a multiple of {step} on {key} ({CONTRACT_STEP_TEXT[key]})")
     if side not in ("buy", "sell"):
         raise ValueError("side must be 'buy' or 'sell'")
     if key != "polymarket-us" and (tier is not None or volume_30d is not None):

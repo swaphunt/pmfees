@@ -12,6 +12,8 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import ClassVar
 
+import pytest
+
 from pmfees import break_even, fee, load_rates
 
 RATES = load_rates(Path(__file__).parent / "fixtures" / "rates_2026-11-08.json")
@@ -277,3 +279,30 @@ class InputTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.parametrize(
+    ("platform", "contracts", "category"),
+    [
+        ("kalshi", "1.5", None),
+        ("kalshi", "0.99", None),
+        ("polymarket-us", "153.845", None),
+        ("polymarket", "19.2307001", "Crypto"),
+    ],
+)
+def test_contracts_off_the_platform_step_raise(platform: str, contracts: str, category: str | None) -> None:
+    with pytest.raises(ValueError, match="contracts must be a multiple of"):
+        fee(platform, "0.50", contracts, category=category)
+
+
+@pytest.mark.parametrize(
+    ("platform", "contracts", "category"),
+    [
+        ("kalshi", "7", None),
+        ("kalshi", "7.0", None),
+        ("polymarket-us", "153.84", None),
+        ("polymarket", "19.2307", "Crypto"),
+    ],
+)
+def test_contracts_on_the_platform_step_are_fine(platform: str, contracts: str, category: str | None) -> None:
+    assert fee(platform, "0.50", contracts, category=category).fee >= 0
