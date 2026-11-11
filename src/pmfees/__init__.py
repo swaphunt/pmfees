@@ -6,7 +6,7 @@ All rates, tiers, multipliers and rounding rules come from ``prediction_market_f
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .core import PLATFORMS, BreakEven, FeeResult, break_even, fee, platform_key
 from .rates import Rates, RatesError, default_rates, load_rates
