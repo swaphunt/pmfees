@@ -1,0 +1,97 @@
+{
+  "as_of": "2026-11-08",
+  "polymarket_global": {
+    "name": "Polymarket (international, polymarket.com)",
+    "source_url": "https://docs.polymarket.com/trading/fees",
+    "formula": "fee = C × feeRate × p × (1 − p); only takers pay; C = shares, p = share price",
+    "rates": {
+      "Crypto": 0.07,
+      "Sports": 0.05,
+      "Economics": 0.05,
+      "Culture": 0.05,
+      "Weather": 0.05,
+      "Other": 0.05,
+      "Combos": 0.05,
+      "Finance": 0.04,
+      "Politics": 0.04,
+      "Mentions": 0.04,
+      "Tech": 0.04,
+      "Geopolitics": 0.0
+    },
+    "rounding": {
+      "decimals": 5,
+      "mode": "half_up",
+      "note": "Fees are rounded to 5 decimals (minimum 0.00001 USDC)."
+    },
+    "maker_rebate_share": {
+      "Crypto": 0.2,
+      "Sports": 0.15,
+      "other fee-enabled categories": 0.25,
+      "Combos": 0.0
+    },
+    "notes": [
+      "Some series differ from the category rate (for example NFL and college football markets at 0.03 in November 2026); each market's feeSchedule is authoritative.",
+      "Fees apply only to markets created after their category's activation date; older markets can be fee-free."
+    ]
+  },
+  "polymarket_us": {
+    "name": "Polymarket US (CFTC-regulated app)",
+    "source_url": "https://docs.polymarket.us/fees",
+    "effective": "2026-11-06 13:00 ET",
+    "formula": "fee = Θ × C × p × (1 − p), one curve for all markets",
+    "taker_tiers_30d_volume_usd": [
+      {
+        "below": 10000,
+        "theta": 0.095
+      },
+      {
+        "below": 50000,
+        "theta": 0.085
+      },
+      {
+        "below": 250000,
+        "theta": 0.075
+      },
+      {
+        "below": null,
+        "theta": 0.0695
+      }
+    ],
+    "rounding": {
+      "decimals": 2,
+      "mode": "half_even",
+      "note": "Rounded to the nearest $0.01 with banker's rounding (half to even)."
+    },
+    "new_accounts": "Θ = 0.0695 for the first 7 days",
+    "makers": "no fee; maker rebates start from $10 million in maker volume",
+    "previous": "Θ = 0.0695 for all accounts (0.06 until 2026-09-17)",
+    "notes": [
+      "Combo taker fees (not modelled in the calculator): until 2026-11-11 13:00 ET fee = C × p × [0.0695 × (1 − p) + 0.085 × (1 − p)^4]; from 2026-11-11 13:00 ET fee = C × p × [Θ × (1 − p) + 0.06 × (1 − p)^4], with Θ the account's taker coefficient. Source: docs.polymarket.us/fees (announced as confirmed, seen 2026-11-09)."
+    ]
+  },
+  "kalshi": {
+    "name": "Kalshi",
+    "source_url": "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+    "source_date": "2026-07-07",
+    "formula": "taker fee = round up(M × 0.07 × C × P × (1 − P)), M = 1 by default; maker fee = round up(M × 0.0175 × C × P × (1 − P)), M = 0 by default (only series listed with maker fees). Round up: fee + position cost (C × P) is rounded up to a whole centicent ($0.0001)",
+    "taker_rate": 0.07,
+    "maker_rate": 0.0175,
+    "multipliers": [
+      1,
+      0.5,
+      0
+    ],
+    "rounding": {
+      "decimals": 4,
+      "mode": "up",
+      "basis": "fee_plus_position_cost",
+      "source_url": "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+      "version": "7.7.26",
+      "note": "Kalshi rounds the fee up so that fee plus position cost (contracts × price) is a whole centicent ($0.0001), per the fee schedule (7.7.26, p. 2). Accounts cleared through a broker (FCM) keep balances in whole cents, so there the fee rounds to the cent.",
+      "broker_source_url": "https://docs.kalshi.com/getting_started/fee_rounding.md"
+    },
+    "notes": [
+      "M is a per-series multiplier (1, 0.5 or 0)."
+    ]
+  }
+}
