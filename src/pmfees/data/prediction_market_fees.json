@@ -95,7 +95,8 @@
       "broker_source_url": "https://docs.kalshi.com/getting_started/fee_rounding.md"
     },
     "notes": [
-      "M is a per-series multiplier (1, 0.5 or 0); default 1 for taker fees, 0 for maker fees."
+      "M is a per-series multiplier (1, 0.5 or 0); default 1 for taker fees, 0 for maker fees.",
+      "TEST of the fee-watch PR path, will be closed."
     ]
   }
 }
