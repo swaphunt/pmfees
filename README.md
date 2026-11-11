@@ -201,6 +201,14 @@ mypy
 Releases go to PyPI from GitHub Actions with trusted publishing: bump `__version__`, add a
 CHANGELOG entry, and push a `v<version>` tag. The publish job waits for approval.
 
+## Limitations
+
+- pmfees checks `contracts` against each platform's general order size step, not the step of a single
+  market. Most Polymarket US markets trade in steps of 0.01 contracts, but a few, mostly futures, trade
+  whole contracts only ([Fractional Contracts](https://docs.polymarket.us/learn/trading/basics/fractional-shares.md)).
+  pmfees cannot see which market an order is for, so it accepts 0.01 steps on those markets too. Check the
+  market's step yourself for Polymarket US futures.
+
 ## Disclaimer
 
 Fee estimates for information only. The platform's own confirmation is what you pay.

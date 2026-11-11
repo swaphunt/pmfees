@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2026-11-11)
 
 - `contracts` must match the platform's order size step: whole contracts on Kalshi, 0.01 on
   Polymarket US, at most 6 decimals on polymarket.com. Other sizes raise `ValueError`
   (0.1.0 computed a fee for e.g. 1.5 Kalshi contracts).
+- README: limitations (Polymarket US futures that trade whole contracts only are not detected).
 
 ## 0.1.0 (2026-11-11)
 
