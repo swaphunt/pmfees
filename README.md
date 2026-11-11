@@ -66,7 +66,7 @@ Options:
 | Option | Platforms | Meaning |
 |---|---|---|
 | `--price` | all | Price of the contract you trade, in dollars (0 < price < 1) |
-| `--contracts` | all | Number of contracts (shares on polymarket.com) |
+| `--contracts` | all | Number of contracts (shares on polymarket.com): whole contracts on Kalshi, steps of 0.01 on Polymarket US, up to 6 decimals on polymarket.com |
 | `--side buy\|sell` | all | Changes the cash flow only; the fee formulas are symmetric |
 | `--maker` | all | Maker order. Kalshi: maker rate 0.0175 with M default 0, so pass `--multiplier 1` on markets with maker fees. Polymarket US and polymarket.com: makers pay no fee |
 | `--multiplier` | kalshi | Fee multiplier M (default 1 for takers, 0 for makers) |
