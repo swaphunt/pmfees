@@ -9,8 +9,8 @@ Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket 
 - Exact decimal arithmetic (`decimal.Decimal`), so $1.75 is $1.75 and not $1.7500000000000002.
 - A break-even helper: how far the price has to move before a round trip is in profit after
   the fee on both orders.
-- Fees for a list of fills, each fill rounded on its own and then summed, with Kalshi's per-order
-  rounding refund as an option.
+- Fees for a list of fills: Kalshi's per-order fee accumulator by default, or each fill rounded on
+  its own for fills from different orders.
 - Kalshi's per-series fee structure (multiplier M and maker fees) for the 195 series that differ
   from the standard, looked up by series, event or market ticker.
 - No dependencies outside the Python standard library. Typed (`py.typed`).
@@ -184,34 +184,44 @@ pmfees kalshi --price 0.50 --contracts 100 --series KXMLBGAME
 
 ## Fees per fill
 
-An order that fills at several prices pays a fee on every fill, and each fill is rounded on its own.
-`fill_fees()` prices each fill with `fee()` and adds them up. Fills are `(price, contracts)` pairs or
-dicts with `price`, `contracts` and optionally `maker`; the other arguments are the same as `fee()`:
+An order that fills at several prices pays a fee on every fill. `fill_fees()` prices each fill with
+`fee()` and adds them up. Fills are `(price, contracts)` pairs or dicts with `price`, `contracts` and
+optionally `maker`; the other arguments are the same as `fee()`.
+
+On Kalshi, each fill is rounded up to a whole centicent, but the rounding does not add up within an
+order. Kalshi's [Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md) page:
+
+> The **fee accumulator** applies across all fills of an order so that the total fee converges to
+> what a single equivalent fill would cost.
+
+> The fee accumulator is maintained per order across all fills regardless of whether the fills are
+> taker or maker.
+
+The accumulator collects each fill's rounding and refunds it in steps of the balance precision
+($0.0001 for direct members), never more than the fill's own fee. That is the default
+(`same_order=True`): the fills are treated as one order.
 
 ```python
 from pmfees import fill_fees
 
-fills = [(0.33, 1)] * 5
+fills = [(0.33, 1)] * 5  # one order, filled 1 contract at a time
 r = fill_fees("kalshi", fills)
-r.fees  # (Decimal('0.0155'),) * 5: each fill 0.015477, rounded up to a centicent by itself
-fill_fees("kalshi", fills).fee  # Decimal('0.0775')
-fee("kalshi", 0.33, 5).fee  # Decimal('0.0774')  one fill of 5 rounds once
+r.rebates  # 0.0001 refunded on the fifth fill
+fill_fees("kalshi", fills).fee  # Decimal('0.0774')  the same as one fill of 5
+fee("kalshi", 0.33, 5).fee  # Decimal('0.0774')
 fill_fees("kalshi", [(0.33, 7), (0.34, 3)], series="KXMLBGAME").fee  # Decimal('0.0778')  0.0542 + 0.0236
 ```
 
-Within one order, Kalshi gives the extra rounding back: a fee accumulator collects each fill's
-rounding and refunds it in centicent steps, so the order's total converges to what one fill of the
-same size would cost ([Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md)).
-Pass `same_order=True` when the fills belong to one order:
+For fills from different orders, pass `same_order=False`. Each fill is then rounded on its own and
+nothing is refunded:
 
 ```python
-r = fill_fees("kalshi", fills, same_order=True)
-r.rebates  # 0.0001 refunded on the fifth fill
-fill_fees("kalshi", fills, same_order=True).fee  # Decimal('0.0774')
+fill_fees("kalshi", fills, same_order=False).fee  # Decimal('0.0775')  5 × 0.0155 (0.015477 rounded up)
 ```
 
-Without `same_order` (the default), the fills are treated as separate orders. `r.breakdown()` gives
-every fill's raw fee, rounded fee, rebate and net fee as strings, ready for JSON.
+Polymarket US and polymarket.com document no such refund, so there every fill is always rounded on
+its own and `same_order` has no effect. `r.breakdown()` gives every fill's raw fee, rounded fee,
+rebate and net fee as strings, ready for JSON.
 
 ## The formulas
 

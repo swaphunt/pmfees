@@ -446,6 +446,7 @@ class FillFees:
     rebates: tuple[Decimal, ...]
     """Rounding refunded on each fill by Kalshi's per-order fee accumulator (all 0 unless same_order)."""
     same_order: bool
+    """True when Kalshi's per-order fee accumulator was applied (only ever on Kalshi)."""
     unrebated_rounding: Decimal
     """Rounding still held in the accumulator after the last fill (0 unless same_order)."""
 
@@ -527,7 +528,7 @@ def fill_fees(
     tier: int | str | None = None,
     maker: bool = False,
     *,
-    same_order: bool = False,
+    same_order: bool = True,
     category: str | None = None,
     multiplier: Number | None = None,
     series: str | KalshiSeries | None = None,
@@ -540,17 +541,19 @@ def fill_fees(
     optionally ``maker`` (overrides ``maker`` for that fill). All other options are the same as
     for ``fee()`` and apply to every fill.
 
-    On Kalshi each fill is rounded up to a whole centicent by itself, so the sum can be more
-    than the fee for one fill of the same size. Kalshi gives that back within one order: its
-    fee accumulator refunds overpaid rounding across the order's fills in centicent steps
-    (https://docs.kalshi.com/getting_started/fee_rounding.md). Pass ``same_order=True`` when the
-    fills belong to one order to apply those rebates. Polymarket US and polymarket.com document
-    no such refund, so ``same_order`` only applies to Kalshi.
+    Kalshi (default ``same_order=True``): the fills are one order. Each fill is rounded up to a
+    whole centicent, and Kalshi's fee accumulator refunds that rounding in centicent steps, so
+    the total converges to one equivalent fill. Kalshi: "The fee accumulator applies across all
+    fills of an order so that the total fee converges to what a single equivalent fill would
+    cost" (https://docs.kalshi.com/getting_started/fee_rounding.md). Pass ``same_order=False``
+    for fills from different orders: each is rounded on its own and nothing is refunded.
+
+    Polymarket US and polymarket.com document no such refund, so there every fill is always
+    rounded on its own and ``same_order`` has no effect.
     """
     r = rates if rates is not None else default_rates()
     key = platform_key(platform)
-    if same_order and key != "kalshi":
-        raise ValueError("same_order only applies to kalshi (its per-order fee accumulator)")
+    accumulate = same_order and key == "kalshi"
     results: list[FeeResult] = []
     for i, item in enumerate(fills):
         price, contracts, fill_maker = _fill(item, i)
@@ -577,7 +580,7 @@ def fill_fees(
 
     rebates = [Decimal(0)] * len(results)
     held = Decimal(0)
-    if same_order:
+    if accumulate:
         # Kalshi fee rounding: trade fee = model fee rounded up to $0.000001; the rounding fee is
         # what the fill's balance alignment adds on top. It goes into the order's accumulator,
         # which is refunded in steps of the balance precision, never more than the fill's fee.
@@ -593,6 +596,6 @@ def fill_fees(
         side=side,
         fills=tuple(results),
         rebates=tuple(rebates),
-        same_order=same_order,
+        same_order=accumulate,
         unrebated_rounding=held,
     )

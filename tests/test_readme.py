@@ -82,6 +82,17 @@ class ReadmeTest(unittest.TestCase):
             with self.subTest(expr=expr):
                 self.assertEqual(eval(expr, env), Decimal(expected))
 
+    def test_quotes_kalshi_fee_rounding_page(self) -> None:
+        self.assertIn("https://docs.kalshi.com/getting_started/fee_rounding.md", self.text)
+        quote = (
+            "The **fee accumulator** applies across all fills of an order so that the total fee "
+            "converges to what a single equivalent fill would cost."
+        )
+        quoted = " ".join(
+            line.removeprefix("> ").strip() for line in self.text.splitlines() if line.startswith("> ")
+        )
+        self.assertIn(quote, quoted)
+
     def test_series_cli_example(self) -> None:
         args = "kalshi --price 0.50 --contracts 100 --series KXMLBGAME"
         line = "Kalshi taker fee: $0.875 (1.75% of trade value at 50¢)"
