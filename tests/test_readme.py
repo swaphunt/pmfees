@@ -9,7 +9,7 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
-from pmfees import fee, load_rates
+from pmfees import fee, fill_fees, load_rates
 from pmfees.cli import main
 
 README = Path(__file__).resolve().parents[1] / "README.md"
@@ -71,6 +71,34 @@ class ReadmeTest(unittest.TestCase):
         for expr, expected in found:
             with self.subTest(expr=expr):
                 self.assertEqual(eval(expr, {"fee": fee}), Decimal(expected))
+
+    def test_fill_fees_examples(self) -> None:
+        """Every `fill_fees(...).fee  # Decimal('x')` line in the README runs and gives x."""
+        pattern = re.compile(r"^(fill_fees\(.*\)\.fee)\s+# Decimal\('([0-9.]+)'\)", re.M)
+        found = pattern.findall(self.text)
+        self.assertGreaterEqual(len(found), 3)
+        env = {"fee": fee, "fill_fees": fill_fees, "fills": [(0.33, 1)] * 5}
+        for expr, expected in found:
+            with self.subTest(expr=expr):
+                self.assertEqual(eval(expr, env), Decimal(expected))
+
+    def test_quotes_kalshi_fee_rounding_page(self) -> None:
+        self.assertIn("https://docs.kalshi.com/getting_started/fee_rounding.md", self.text)
+        quote = (
+            "The **fee accumulator** applies across all fills of an order so that the total fee "
+            "converges to what a single equivalent fill would cost."
+        )
+        quoted = " ".join(
+            line.removeprefix("> ").strip() for line in self.text.splitlines() if line.startswith("> ")
+        )
+        self.assertIn(quote, quoted)
+
+    def test_series_cli_example(self) -> None:
+        args = "kalshi --price 0.50 --contracts 100 --series KXMLBGAME"
+        line = "Kalshi taker fee: $0.875 (1.75% of trade value at 50¢)"
+        self.assertIn(f"pmfees {args}", self.text)
+        self.assertIn(line, self.text)
+        self.assertIn(line, cli(*args.split()))
 
     def test_says_platforms_not_exchanges(self) -> None:
         self.assertNotIn("exchange", self.text.lower())

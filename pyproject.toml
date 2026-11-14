@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pmfees"
-version = "0.1.1"
+version = "0.2.0"
 description = "Exact trading fees for Kalshi, Polymarket US and polymarket.com, with a CLI and break-even helper."
 readme = "README.md"
 license = "MIT"
@@ -35,7 +35,7 @@ pmfees = "pmfees.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-pmfees = ["py.typed", "data/prediction_market_fees.json"]
+pmfees = ["py.typed", "data/prediction_market_fees.json", "data/kalshi_series.json"]
 
 [tool.ruff]
 line-length = 110

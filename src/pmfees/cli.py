@@ -76,7 +76,11 @@ def _parser() -> argparse.ArgumentParser:
     common.add_argument("--rates", help="path to an updated prediction_market_fees.json")
 
     k = sub.add_parser("kalshi", parents=[common], help="Kalshi")
-    k.add_argument("--multiplier", help="fee multiplier M (default 1 for takers, 0 for makers)")
+    km = k.add_mutually_exclusive_group()
+    km.add_argument("--multiplier", help="fee multiplier M (default 1 for takers, 0 for makers)")
+    km.add_argument(
+        "--series", help="series, event or market ticker, e.g. KXMLBGAME: M and maker fees from Kalshi"
+    )
 
     us = sub.add_parser("polymarket-us", parents=[common], help="Polymarket US")
     grp = us.add_mutually_exclusive_group()
@@ -118,6 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         opts: dict[str, str | None] = {
             "multiplier": getattr(args, "multiplier", None),
+            "series": getattr(args, "series", None),
             "tier": getattr(args, "tier", None),
             "volume_30d": getattr(args, "volume", None),
             "category": getattr(args, "category", None),
@@ -131,6 +136,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.maker,
             category=opts["category"],
             multiplier=opts["multiplier"],
+            series=opts["series"],
             volume_30d=opts["volume_30d"],
             rates=rates,
         )
@@ -146,6 +152,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 tick=args.tick,
                 category=opts["category"],
                 multiplier=opts["multiplier"],
+                series=opts["series"],
                 volume_30d=opts["volume_30d"],
                 rates=rates,
             )

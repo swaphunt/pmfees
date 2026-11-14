@@ -1,0 +1,1005 @@
+{
+ "as_of": "2026-11-14",
+ "source_url": "https://external-api.kalshi.com/trade-api/v2/series",
+ "source_doc_url": "https://docs.kalshi.com/api-reference/market/get-series",
+ "fee_schedule_url": "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+ "fee_schedule_version": "7.7.26",
+ "fee_schedule_date": "2026-07-07",
+ "note": "Series whose fee_type or fee_multiplier differs from the default, from Kalshi's Get Series List. Series that are not listed are standard. Rates (0.07 taker) come from the fee schedule in prediction_market_fees.json.",
+ "series_total": 16442,
+ "default": {
+  "fee_type": "quadratic",
+  "multiplier": 1
+ },
+ "fee_types": {
+  "quadratic": {
+   "maker_share": 0,
+   "description": "General Trading Fees Table; makers pay no fee"
+  },
+  "quadratic_with_maker_fees": {
+   "maker_share": 0.25,
+   "description": "General Trading Fees Table with maker fees (Maker Fees): 0.25 × the taker fee"
+  },
+  "quadratic_with_combo_maker_fees": {
+   "maker_share": 0.5,
+   "description": "General Trading Fees Table, with combo maker fees: 0.5 × the taker fee"
+  }
+ },
+ "series": {
+  "KXA100MAX": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Yearly Directional Price"
+  },
+  "KXA100MON": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Monthly Price"
+  },
+  "KXA100MS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Monthly"
+  },
+  "KXA100Q": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Quarterly Directional Price"
+  },
+  "KXA100W": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Weekly Price"
+  },
+  "KXA100WS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "A100 Weekly"
+  },
+  "KXAAAGASM": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "US gas price"
+  },
+  "KXAOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Argentina Open men's singles"
+  },
+  "KXATPMATCH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "ATP Tennis Match"
+  },
+  "KXB200MAX": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B100 Yearly Directional Price"
+  },
+  "KXB200MON": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B200 Monthly Price"
+  },
+  "KXB200MS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B200 Monthly"
+  },
+  "KXB200Q": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B200 Quarterly Directional Price"
+  },
+  "KXB200W": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B200 Weekly Price"
+  },
+  "KXB200WS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "B200 Weekly"
+  },
+  "KXBALLONDOR": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Ballon d'Or"
+  },
+  "KXBTCMAX125": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "When will bitcoin hit 125k?"
+  },
+  "KXBTCMAX150": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "When will bitcoin hit 150k?"
+  },
+  "KXBTCY": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "BTC price range EOY"
+  },
+  "KXBUNDESLIGA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "BUNDESLIGA"
+  },
+  "KXBUNDESLIGAGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Bundesliga Game"
+  },
+  "KXCITRINI": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Will the Citrini scenario materialize?"
+  },
+  "KXCLUBWC": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Club World Cup Championship"
+  },
+  "KXCONNSMYTHE": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Conn Smythe trophy"
+  },
+  "KXCPI": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "CPI"
+  },
+  "KXCPIYOY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Inflation"
+  },
+  "KXDOED": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "DOE eliminated"
+  },
+  "KXEGGS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Egg prices"
+  },
+  "KXELECTIRAN": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Will Iran hold a presidential election?"
+  },
+  "KXEMMYCACTO": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Lead Comedy Actor"
+  },
+  "KXEMMYCACTR": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Lead Comedy Actress"
+  },
+  "KXEMMYCSERIES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Comedy Series"
+  },
+  "KXEMMYDACTO": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Lead Drama Actor"
+  },
+  "KXEMMYDACTR": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Lead Drama Actress"
+  },
+  "KXEMMYDSERIES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Emmys Award for Drama Series"
+  },
+  "KXEPLGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "English Premier League Game"
+  },
+  "KXEPLTOP4": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "EPL top 4 teams"
+  },
+  "KXETHY": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "ETH price EOY"
+  },
+  "KXEXPAND": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Greenland, Panama, Canada control"
+  },
+  "KXF1RACE": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "F1 Race"
+  },
+  "KXF1RACEPODIUM": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "F1 Race Podium Finisher"
+  },
+  "KXFED": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Fed funds rate"
+  },
+  "KXFEDDECISION": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Fed meeting"
+  },
+  "KXFOMEN": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "French Open Men's"
+  },
+  "KXFOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "French Open men's singles"
+  },
+  "KXFOWOMEN": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "French Open Women's"
+  },
+  "KXFOWOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "French Open women's singles"
+  },
+  "KXGAMBLINGREPEAL": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Gambling Repeal"
+  },
+  "KXGDP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "US GDP growth"
+  },
+  "KXGDPYEAR": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Annual GDP"
+  },
+  "KXGREENLAND": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Greenland purchase"
+  },
+  "KXH100MAX": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Yearly Directional Price"
+  },
+  "KXH100MON": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Monthly Price"
+  },
+  "KXH100MS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Monthly"
+  },
+  "KXH100Q": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Quarterly Directional Price"
+  },
+  "KXH100W": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Weekly Price"
+  },
+  "KXH100WS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H100 Weekly"
+  },
+  "KXH200MAX": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H200 Yearly Directional Price"
+  },
+  "KXH200MON": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H200 Monthly Price"
+  },
+  "KXH200MS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H200 Monthly"
+  },
+  "KXH200Q": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H200 Quarterly Directional Price"
+  },
+  "KXH200W": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "H200 Weekly Price"
+  },
+  "KXH200WS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Weekly H200"
+  },
+  "KXHEISMAN": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Heisman Trophy Winner"
+  },
+  "KXINDY500": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Indy 500 Winner"
+  },
+  "KXINXY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "S&P 500 yearly range"
+  },
+  "KXIPO": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "IPOs"
+  },
+  "KXIRANDEMOCRACY": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Will Iran become a democracy in 2026?"
+  },
+  "KXLALIGA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "LA LIGA"
+  },
+  "KXLALIGAGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "La Liga Game"
+  },
+  "KXLAYOFFSYINFO": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Tech layoffs"
+  },
+  "KXLIGUE1": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "LIGUE 1"
+  },
+  "KXLIGUE1GAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Ligue 1 Game"
+  },
+  "KXLLM1": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Year-end top LLM"
+  },
+  "KXMARMAD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Men's College Basketball Tournament Champion"
+  },
+  "KXMENWORLDCUP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Men's World Cup winner"
+  },
+  "KXMLB": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "World Series"
+  },
+  "KXMLBAL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "MLB American League Championship"
+  },
+  "KXMLBASGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Professional Baseball All-Star Game"
+  },
+  "KXMLBEXTRAS": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "MLB Extra Innings"
+  },
+  "KXMLBF3": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "First 3 Innings Winner"
+  },
+  "KXMLBF5": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "First 5 Innings Winner"
+  },
+  "KXMLBF5SPREAD": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "First 5 Innings Spread"
+  },
+  "KXMLBF5TOTAL": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "First 5 Innings Total"
+  },
+  "KXMLBF7": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "First 7 Innings Winner"
+  },
+  "KXMLBGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 0.5,
+   "title": "Professional Baseball Game"
+  },
+  "KXMLBHIT": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Hits"
+  },
+  "KXMLBHR": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Home Runs"
+  },
+  "KXMLBHRDERBY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Baseball Homerun Derby"
+  },
+  "KXMLBHRR": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Hits Runs RBIs"
+  },
+  "KXMLBKS": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Strikeouts"
+  },
+  "KXMLBNL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "MLB National League Championship"
+  },
+  "KXMLBOUTS": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Outs Recorded"
+  },
+  "KXMLBRBI": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball RBIs"
+  },
+  "KXMLBRFI": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Run in First Inning"
+  },
+  "KXMLBSB": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Stolen Bases"
+  },
+  "KXMLBSERIES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Baseball Series Winner"
+  },
+  "KXMLBSPREAD": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Spread"
+  },
+  "KXMLBTB": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Total Bases"
+  },
+  "KXMLBTEAMTOTAL": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Team Total"
+  },
+  "KXMLBTOTAL": {
+   "fee_type": "quadratic",
+   "multiplier": 0.5,
+   "title": "Pro Baseball Total Points"
+  },
+  "KXMVECROSSCATEGORY": {
+   "fee_type": "quadratic_with_combo_maker_fees",
+   "multiplier": 1,
+   "title": "MVE Cross Category"
+  },
+  "KXMVECROSSCATEGORY-SHARD1": {
+   "fee_type": "quadratic_with_combo_maker_fees",
+   "multiplier": 1,
+   "title": "MVE Cross Category"
+  },
+  "KXMVESPORTSMULTIGAMEEXTENDED": {
+   "fee_type": "quadratic_with_combo_maker_fees",
+   "multiplier": 1,
+   "title": "MVE Sport Mutli Game"
+  },
+  "KXNASCAR": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NASCAR Cup Series playoffs"
+  },
+  "KXNASCARRACE": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NASCAR Race"
+  },
+  "KXNASCARRACEOLD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NASCAR Race winner"
+  },
+  "KXNASDAQ100Y": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Nasdaq yearly range"
+  },
+  "KXNATHANDOGS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Nathan's hot dogs"
+  },
+  "KXNATHANSHD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Nathan's Hot Dog Eating Contest Winner"
+  },
+  "KXNBA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Basketball Champion"
+  },
+  "KXNBACOY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Coach of the Year"
+  },
+  "KXNBAEAST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Basketball Eastern Conference Champion"
+  },
+  "KXNBAFINALSMVP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Finals MVP"
+  },
+  "KXNBAGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Game"
+  },
+  "KXNBAMVP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA MVP"
+  },
+  "KXNBAROY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Rookie of the Year"
+  },
+  "KXNBASERIES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Series Winner"
+  },
+  "KXNBASPREAD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Spread"
+  },
+  "KXNBATOTAL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NBA Total"
+  },
+  "KXNBAWEST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Basketball Western Conference Champion"
+  },
+  "KXNCAAF": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NCAAF Championship"
+  },
+  "KXNCAAFACC": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "ACC Champion"
+  },
+  "KXNCAAFB10": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Big Ten Champion"
+  },
+  "KXNCAAFB12": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Big 12 Champion"
+  },
+  "KXNCAAFGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "College Football Game"
+  },
+  "KXNCAAFPLAYOFF": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "College Football Playoff Qualifiers"
+  },
+  "KXNCAAFSEC": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "SEC Champion"
+  },
+  "KXNCAAFSPREAD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "College Football Spread"
+  },
+  "KXNCAAFTOTAL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "College Football Total Points"
+  },
+  "KXNCAAMBGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Men's College Basketball Game"
+  },
+  "KXNCAAMBSPREAD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Men's College Basketball Spread"
+  },
+  "KXNCAAMBTOTAL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Men's College Basketball Total Points"
+  },
+  "KXNEXTIRANLEADER": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Who will be Khamenei's successor?"
+  },
+  "KXNFL2TD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Football Multiple Touchdowns"
+  },
+  "KXNFLAFCCHAMP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "American Football Conference Champion"
+  },
+  "KXNFLAFCEAST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "American Football Conference East Winner"
+  },
+  "KXNFLAFCNORTH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "American Football Conference North Winner"
+  },
+  "KXNFLAFCSOUTH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "American Football Conference South Winner"
+  },
+  "KXNFLAFCWEST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "American Football Conference West Winner"
+  },
+  "KXNFLANYTD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Football Anytime Touchdown"
+  },
+  "KXNFLCOTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Coach Of The Year"
+  },
+  "KXNFLCPOTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Comeback Player of the Year"
+  },
+  "KXNFLDPOTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Defensive Player Of The Year"
+  },
+  "KXNFLDROTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Defensive Rookie of the Year"
+  },
+  "KXNFLFIRSTTD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Football First Touchdown"
+  },
+  "KXNFLGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NFL Game"
+  },
+  "KXNFLMVP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Regular Season MVP"
+  },
+  "KXNFLNFCCHAMP": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "National Football Conference Champion"
+  },
+  "KXNFLNFCEAST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "National Football Conference East Winner"
+  },
+  "KXNFLNFCNORTH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "National Football Conference North Winner"
+  },
+  "KXNFLNFCSOUTH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "National Football Conference South Winner"
+  },
+  "KXNFLNFCWEST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "National Football Conference West Winner"
+  },
+  "KXNFLOPOTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Offensive Player Of The Year"
+  },
+  "KXNFLOROTY": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "AP Pro Football Offensive Rookie of the Year"
+  },
+  "KXNFLSPREAD": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Football Spread"
+  },
+  "KXNFLTOTAL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Pro Football Total Points"
+  },
+  "KXNHL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Stanley Cup"
+  },
+  "KXNHLEAST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Eastern Conference Championship"
+  },
+  "KXNHLGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NHL Game"
+  },
+  "KXNHLSERIES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "NHL Series Winner"
+  },
+  "KXNHLWEST": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Western Conference Champion"
+  },
+  "KXPAHLAVIHEAD": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Will Pahlavi lead Iran?"
+  },
+  "KXPAYROLLS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Jobs numbers"
+  },
+  "KXPGA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "PGA Championship"
+  },
+  "KXPGARYDER": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Ryder Cup"
+  },
+  "KXPGASOLHEIM": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Solheim Cup"
+  },
+  "KXPGATOUR": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "PGA Tour"
+  },
+  "KXRATECUTCOUNT": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Number of rate cuts"
+  },
+  "KXRTX5090MAX": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX5090 Yearly Directional Price"
+  },
+  "KXRTX5090MON": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX 5059 Monthly Price"
+  },
+  "KXRTX5090MS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX 5090 Monthly"
+  },
+  "KXRTX5090Q": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX5090 Quarterly Directional Price"
+  },
+  "KXRTX5090W": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX 5090 Weekly Price"
+  },
+  "KXRTX5090WS": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "RTX 5090 Weekly"
+  },
+  "KXSB": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Super Bowl"
+  },
+  "KXSERIEA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Serie A"
+  },
+  "KXSERIEAGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Serie A Game"
+  },
+  "KXSUPERBOWLHEADLINE": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Who will headline super bowl"
+  },
+  "KXTHEOPEN": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "The Open Championship"
+  },
+  "KXTOURDEFRANCE": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Tour de France winner"
+  },
+  "KXTRUMPOUT": {
+   "fee_type": "quadratic",
+   "multiplier": 0,
+   "title": "Trump Out As President"
+  },
+  "KXU3": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Unemployment"
+  },
+  "KXUCL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "UEFA Champions League"
+  },
+  "KXUCLGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "UEFA Champions League Game"
+  },
+  "KXUEFACL": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "UEFA Champions League"
+  },
+  "KXUSOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "US Open men's singles"
+  },
+  "KXUSOPEN": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "US Open"
+  },
+  "KXUSOWOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "US Open women's singles"
+  },
+  "KXWCGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "World Cup Game"
+  },
+  "KXWMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "WIMBLEDON men's singles"
+  },
+  "KXWNBA": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "WNBA Champion"
+  },
+  "KXWNBAGAME": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Women's Pro Basketball Game"
+  },
+  "KXWTAMATCH": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "WTA Tennis Match"
+  },
+  "KXWWOMENSINGLES": {
+   "fee_type": "quadratic_with_maker_fees",
+   "multiplier": 1,
+   "title": "Wimbledon women's singles"
+  }
+ }
+}
