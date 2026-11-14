@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import ROUND_DOWN, ROUND_UP, Decimal
 from typing import Literal
 
+from .kalshi_series import KalshiSeries, default_kalshi_series
 from .rates import Rates, Rounding, default_rates
 
 Platform = Literal["kalshi", "polymarket-us", "polymarket"]
@@ -188,6 +190,7 @@ def fee(
     *,
     category: str | None = None,
     multiplier: Number | None = None,
+    series: str | KalshiSeries | None = None,
     volume_30d: Number | None = None,
     rates: Rates | None = None,
 ) -> FeeResult:
@@ -202,6 +205,10 @@ def fee(
       and 0 for makers (Kalshi charges makers only where the market says so, so pass
       ``multiplier=1`` with ``maker=True`` for those). The fee is rounded up so that
       fee + position cost (C × P) is a whole centicent ($0.0001).
+      ``series`` is a series, event or market ticker (``"KXMLBGAME"``) or a
+      ``KalshiSeries``: M and whether makers pay come from Kalshi's per-series
+      ``fee_type`` and ``fee_multiplier`` (``kalshi_series.json``). Give either
+      ``series`` or ``multiplier``.
     * ``polymarket-us``: ``tier`` is 1-4 or ``"new"`` (first 7 days), or give
       ``volume_30d`` (trailing 30-day taker volume in USD). Default: Tier 1.
       Makers pay no fee.
@@ -224,6 +231,8 @@ def fee(
         raise ValueError("tier and volume_30d only apply to polymarket-us")
     if key != "kalshi" and multiplier is not None:
         raise ValueError("multiplier only applies to kalshi")
+    if key != "kalshi" and series is not None:
+        raise ValueError("series only applies to kalshi")
     if key != "polymarket" and category is not None:
         raise ValueError("category only applies to polymarket (polymarket.com)")
 
@@ -234,20 +243,43 @@ def fee(
 
     if key == "kalshi":
         k = r.kalshi
-        default_m = Decimal(0) if maker else ONE
-        m = default_m if multiplier is None else _num(multiplier, "multiplier")
+        s: KalshiSeries | None = None
+        if series is not None:
+            if multiplier is not None:
+                raise ValueError("give either series or multiplier, not both")
+            table = default_kalshi_series()
+            s = series if isinstance(series, KalshiSeries) else table.lookup(series)
+            m = s.multiplier
+            # Kalshi OpenAPI: maker fee = the taker formula × 0.25 (0.5 for combo maker fees),
+            # × M; 0.07 × 0.25 is the fee schedule's maker rate 0.0175.
+            base = k.taker_rate * s.maker_share if maker else k.taker_rate
+            details["series"] = s.ticker
+            details["series_fee_type"] = s.fee_type if s.listed else f"{s.fee_type} (not listed: standard)"
+            details["series_as_of"] = table.as_of
+            if not s.listed:
+                notes.append(
+                    f"{s.ticker} is not among the {len(table.series)} non-standard series in "
+                    f"kalshi_series.json ({table.as_of}), so the standard structure "
+                    f"({s.fee_type}, M = {s.multiplier}) is assumed."
+                )
+            if maker and s.maker_share == 0:
+                notes.append(f"Series {s.ticker} has no maker fees (fee_type {s.fee_type}).")
+        else:
+            default_m = Decimal(0) if maker else ONE
+            m = default_m if multiplier is None else _num(multiplier, "multiplier")
+            base = k.maker_rate if maker else k.taker_rate
         if m not in k.multipliers:
             allowed = ", ".join(str(x) for x in k.multipliers)
             raise ValueError(f"unknown Kalshi series multiplier {m}; the rates file lists: {allowed}")
-        base = k.maker_rate if maker else k.taker_rate
         coefficient = m * base
         details["base_rate"] = str(base)
         details["multiplier"] = str(m)
         if k.version:
             details["fee_schedule_version"] = k.version
-        if maker and multiplier is None:
+        if maker and multiplier is None and s is None:
             notes.append(
-                "Kalshi maker multiplier defaults to 0; pass multiplier=1 for markets with maker fees."
+                "Kalshi maker multiplier defaults to 0; pass multiplier=1 for markets with maker fees, "
+                "or series= to look it up."
             )
         rounding, formula, source, as_of = k.rounding, k.formula, k.source_url, k.as_of
     elif key == "polymarket-us":
@@ -331,6 +363,7 @@ def break_even(
     tick: Number = "0.01",
     category: str | None = None,
     multiplier: Number | None = None,
+    series: str | KalshiSeries | None = None,
     volume_30d: Number | None = None,
     rates: Rates | None = None,
 ) -> BreakEven:
@@ -356,6 +389,7 @@ def break_even(
             maker,
             category=category,
             multiplier=multiplier,
+            series=series,
             volume_30d=volume_30d,
             rates=r,
         )
@@ -392,4 +426,173 @@ def break_even(
         move=None,
         profit_at_exit=None,
         tick=t,
+    )
+
+
+FillInput = tuple[Number, Number] | Mapping[str, object]
+"""A fill: ``(price, contracts)`` or a mapping with ``price``, ``contracts`` and optionally ``maker``."""
+
+SIX_DP = Decimal("0.000001")
+
+
+@dataclass(frozen=True)
+class FillFees:
+    """Fees for a list of fills, each fill priced and rounded on its own, then summed."""
+
+    platform_name: str
+    side: Side
+    fills: tuple[FeeResult, ...]
+    """One ``FeeResult`` per fill; ``FeeResult.fee`` is that fill rounded on its own."""
+    rebates: tuple[Decimal, ...]
+    """Rounding refunded on each fill by Kalshi's per-order fee accumulator (all 0 unless same_order)."""
+    same_order: bool
+    unrebated_rounding: Decimal
+    """Rounding still held in the accumulator after the last fill (0 unless same_order)."""
+
+    @property
+    def fees(self) -> tuple[Decimal, ...]:
+        """Net fee per fill: the fill's rounded fee minus its rebate."""
+        return tuple(f.fee - r for f, r in zip(self.fills, self.rebates, strict=True))
+
+    @property
+    def fee(self) -> Decimal:
+        """Total fee in USD for all fills."""
+        return sum(self.fees, Decimal(0))
+
+    @property
+    def raw_fee(self) -> Decimal:
+        """Total of the fills' exact fees before rounding."""
+        return sum((f.raw_fee for f in self.fills), Decimal(0))
+
+    @property
+    def contracts(self) -> Decimal:
+        return sum((f.contracts for f in self.fills), Decimal(0))
+
+    @property
+    def trade_value(self) -> Decimal:
+        return sum((f.trade_value for f in self.fills), Decimal(0))
+
+    @property
+    def cash_flow(self) -> Decimal:
+        """Signed cash for all fills including the fees: negative when you pay."""
+        sign = -1 if self.side == "buy" else 1
+        return sign * self.trade_value - self.fee
+
+    def breakdown(self) -> dict[str, object]:
+        """Plain strings and lists, ready for JSON."""
+        return {
+            "platform": self.platform_name,
+            "side": self.side,
+            "same_order": self.same_order,
+            "fills": [
+                {
+                    "price": str(f.price),
+                    "contracts": str(f.contracts),
+                    "role": f.role,
+                    "raw_fee_usd": str(f.raw_fee),
+                    "fee_usd": str(f.fee),
+                    "rebate_usd": str(r),
+                    "net_fee_usd": str(f.fee - r),
+                }
+                for f, r in zip(self.fills, self.rebates, strict=True)
+            ],
+            "contracts": str(self.contracts),
+            "trade_value_usd": str(self.trade_value),
+            "raw_fee_usd": str(self.raw_fee),
+            "fee_usd": str(self.fee),
+            "unrebated_rounding_usd": str(self.unrebated_rounding),
+            "cash_flow_usd": str(self.cash_flow),
+        }
+
+
+def _fill(item: FillInput, i: int) -> tuple[Number, Number, bool | None]:
+    if isinstance(item, Mapping):
+        try:
+            price, contracts = item["price"], item["contracts"]
+        except KeyError as exc:
+            raise ValueError(f"fill {i}: needs 'price' and 'contracts'") from exc
+        maker = item.get("maker")
+        if maker is not None and not isinstance(maker, bool):
+            raise ValueError(f"fill {i}: 'maker' must be True or False")
+        return price, contracts, maker  # type: ignore[return-value]
+    if isinstance(item, (tuple, list)) and len(item) == 2:
+        return item[0], item[1], None
+    raise ValueError(f"fill {i}: expected (price, contracts) or a mapping with price and contracts")
+
+
+def fill_fees(
+    platform: str,
+    fills: Iterable[FillInput],
+    side: Side = "buy",
+    tier: int | str | None = None,
+    maker: bool = False,
+    *,
+    same_order: bool = False,
+    category: str | None = None,
+    multiplier: Number | None = None,
+    series: str | KalshiSeries | None = None,
+    volume_30d: Number | None = None,
+    rates: Rates | None = None,
+) -> FillFees:
+    """Fee per fill, summed: each fill is priced and rounded on its own with ``fee()``.
+
+    ``fills`` are ``(price, contracts)`` pairs, or mappings with ``price``, ``contracts`` and
+    optionally ``maker`` (overrides ``maker`` for that fill). All other options are the same as
+    for ``fee()`` and apply to every fill.
+
+    On Kalshi each fill is rounded up to a whole centicent by itself, so the sum can be more
+    than the fee for one fill of the same size. Kalshi gives that back within one order: its
+    fee accumulator refunds overpaid rounding across the order's fills in centicent steps
+    (https://docs.kalshi.com/getting_started/fee_rounding.md). Pass ``same_order=True`` when the
+    fills belong to one order to apply those rebates. Polymarket US and polymarket.com document
+    no such refund, so ``same_order`` only applies to Kalshi.
+    """
+    r = rates if rates is not None else default_rates()
+    key = platform_key(platform)
+    if same_order and key != "kalshi":
+        raise ValueError("same_order only applies to kalshi (its per-order fee accumulator)")
+    results: list[FeeResult] = []
+    for i, item in enumerate(fills):
+        price, contracts, fill_maker = _fill(item, i)
+        try:
+            results.append(
+                fee(
+                    key,
+                    price,
+                    contracts,
+                    side,
+                    tier,
+                    maker if fill_maker is None else fill_maker,
+                    category=category,
+                    multiplier=multiplier,
+                    series=series,
+                    volume_30d=volume_30d,
+                    rates=r,
+                )
+            )
+        except ValueError as exc:
+            raise ValueError(f"fill {i}: {exc}") from exc
+    if not results:
+        raise ValueError("fills must not be empty")
+
+    rebates = [Decimal(0)] * len(results)
+    held = Decimal(0)
+    if same_order:
+        # Kalshi fee rounding: trade fee = model fee rounded up to $0.000001; the rounding fee is
+        # what the fill's balance alignment adds on top. It goes into the order's accumulator,
+        # which is refunded in steps of the balance precision, never more than the fill's fee.
+        step = Decimal(1).scaleb(-r.kalshi.rounding.decimals)
+        for i, res in enumerate(results):
+            trade_fee = res.raw_fee.quantize(SIX_DP, rounding=ROUND_UP)
+            held += max(res.fee - trade_fee, Decimal(0))
+            rebate = min(held, res.fee).quantize(step, rounding=ROUND_DOWN)
+            rebates[i] = rebate
+            held -= rebate
+    return FillFees(
+        platform_name=results[0].platform_name,
+        side=side,
+        fills=tuple(results),
+        rebates=tuple(rebates),
+        same_order=same_order,
+        unrebated_rounding=held,
     )
