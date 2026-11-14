@@ -168,9 +168,12 @@ class SeriesFeeTest(unittest.TestCase):
 
 
 class FillFeesTest(unittest.TestCase):
-    def test_each_fill_rounded_up_on_its_own(self) -> None:
-        # 1 @ 0.33: 0.07 × 0.33 × 0.67 = 0.015477 -> 0.0155 per fill; 5 fills 0.0775.
-        r = fill_fees("kalshi", [("0.33", 1)] * 5)
+    def test_separate_orders_round_each_fill_on_its_own(self) -> None:
+        # same_order=False: 1 @ 0.33: 0.07 × 0.33 × 0.67 = 0.015477 -> 0.0155 per fill; 5 fills 0.0775.
+        r = fill_fees("kalshi", [("0.33", 1)] * 5, same_order=False)
+        self.assertFalse(r.same_order)
+        self.assertEqual(r.rebates, (D(0),) * 5)
+        self.assertEqual(r.unrebated_rounding, 0)
         self.assertEqual(r.fees, (D("0.0155"),) * 5)
         self.assertEqual(r.fee, D("0.0775"))
         self.assertEqual(r.raw_fee, D("0.077385"))
@@ -182,13 +185,17 @@ class FillFeesTest(unittest.TestCase):
 
     def test_sum_matches_fee_per_fill(self) -> None:
         fills = [("0.33", 7), ("0.34", 3), ("0.35", 10)]
-        r = fill_fees("kalshi", fills)
+        r = fill_fees("kalshi", fills, same_order=False)
         self.assertEqual(r.fee, sum((fee("kalshi", p, c).fee for p, c in fills), D(0)))
         self.assertEqual([f.price for f in r.fills], [D("0.33"), D("0.34"), D("0.35")])
 
-    def test_same_order_accumulator_refunds_rounding(self) -> None:
-        # Rounding of 0.000023 per fill builds up; fill 5 gets a 0.0001 rebate.
-        r = fill_fees("kalshi", [("0.33", 1)] * 5, same_order=True)
+    def test_default_is_one_order_with_kalshis_accumulator(self) -> None:
+        # https://docs.kalshi.com/getting_started/fee_rounding.md: "The fee accumulator applies
+        # across all fills of an order so that the total fee converges to what a single
+        # equivalent fill would cost." Rounding of 0.000023 per fill builds up; fill 5 gets 0.0001.
+        r = fill_fees("kalshi", [("0.33", 1)] * 5)
+        self.assertTrue(r.same_order)
+        self.assertEqual(r, fill_fees("kalshi", [("0.33", 1)] * 5, same_order=True))
         self.assertEqual(r.rebates, (D(0), D(0), D(0), D(0), D("0.0001")))
         self.assertEqual(r.fee, D("0.0774"))
         self.assertEqual(r.unrebated_rounding, D("0.000015"))
@@ -199,16 +206,17 @@ class FillFeesTest(unittest.TestCase):
         for price in ("0.07", "0.33", "0.5", "0.61", "0.97"):
             for split in ((1,) * 9, (2, 3, 4), (5, 1, 1, 1, 1), (8, 1)):
                 with self.subTest(price=price, split=split):
-                    r = fill_fees("kalshi", [(price, c) for c in split], same_order=True)
+                    fills = [(price, c) for c in split]
+                    r = fill_fees("kalshi", fills)
                     single = fee("kalshi", price, sum(split)).fee
                     self.assertLess(abs(r.fee - single), D("0.0001"))
-                    self.assertLessEqual(r.fee, fill_fees("kalshi", [(price, c) for c in split]).fee)
+                    self.assertLessEqual(r.fee, fill_fees("kalshi", fills, same_order=False).fee)
                     self.assertTrue(all(f >= 0 for f in r.fees))
 
     def test_rebate_never_makes_a_fill_negative(self) -> None:
         # Maker fills on a no-maker-fee series cost 0, so there is nothing to rebate against.
         fills = [{"price": "0.33", "contracts": 1}] * 5 + [{"price": "0.5", "contracts": 1, "maker": True}]
-        r = fill_fees("kalshi", fills, same_order=True)
+        r = fill_fees("kalshi", fills)
         self.assertEqual(r.fills[-1].role, "maker")
         self.assertEqual(r.fees[-1], 0)
 
@@ -222,13 +230,15 @@ class FillFeesTest(unittest.TestCase):
         r = fill_fees("polymarket-us", [("0.5", 1)] * 4)
         self.assertEqual(r.fee, D("0.08"))
         self.assertEqual(fee("polymarket-us", "0.5", 4).fee, D("0.10"))
-        with self.assertRaisesRegex(ValueError, "same_order only applies to kalshi"):
-            fill_fees("polymarket-us", [("0.5", 1)], same_order=True)
+        # No documented refund outside Kalshi: same_order has no effect there.
+        self.assertFalse(r.same_order)
+        self.assertEqual(r.rebates, (D(0),) * 4)
+        self.assertEqual(r, fill_fees("polymarket-us", [("0.5", 1)] * 4, same_order=False))
         g = fill_fees("polymarket", [("0.25", 10), ("0.26", 5)], category="Crypto")
         self.assertEqual(g.platform_name, "polymarket.com")
 
     def test_breakdown_is_json_ready(self) -> None:
-        b = fill_fees("kalshi", [("0.33", 1)] * 2, same_order=True).breakdown()
+        b = fill_fees("kalshi", [("0.33", 1)] * 2).breakdown()
         json.dumps(b)
         self.assertEqual(b["fee_usd"], "0.0310")
         self.assertIsInstance(b["fills"], list)

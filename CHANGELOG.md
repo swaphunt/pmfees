@@ -2,11 +2,13 @@
 
 ## 0.2.0 (2026-11-14)
 
-- `fill_fees()`: the fee for a list of fills, each fill priced and rounded on its own (Kalshi: up to
-  a whole centicent per fill) and then summed. `same_order=True` applies Kalshi's per-order fee
-  accumulator, which refunds the extra rounding in centicent steps
-  ([Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md)). Returns `FillFees` with
-  per-fill results, rebates and a JSON-ready `breakdown()`.
+- `fill_fees()`: the fee for a list of fills. By default (`same_order=True`) the fills are one
+  Kalshi order: each fill is rounded up to a whole centicent, and Kalshi's per-order fee accumulator
+  refunds that rounding in centicent steps, so the total converges to one equivalent fill
+  ([Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md)). `same_order=False`
+  rounds each fill on its own with no refund, for fills from different orders. Polymarket US and
+  polymarket.com always round each fill on its own. Returns `FillFees` with per-fill results,
+  rebates and a JSON-ready `breakdown()`.
 - Kalshi per-series fees: `fee(..., series="KXMLBGAME")`, `break_even(..., series=...)` and
   `pmfees kalshi --series`. M and maker fees come from `src/pmfees/data/kalshi_series.json`, built
   from Kalshi's Get Series List (`fee_type`, `fee_multiplier`) on 2026-11-14: the 195 of 16,442
