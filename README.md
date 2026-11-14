@@ -9,10 +9,15 @@ Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket 
 - Exact decimal arithmetic (`decimal.Decimal`), so $1.75 is $1.75 and not $1.7500000000000002.
 - A break-even helper: how far the price has to move before a round trip is in profit after
   the fee on both orders.
+- Fees for a list of fills, each fill rounded on its own and then summed, with Kalshi's per-order
+  rounding refund as an option.
+- Kalshi's per-series fee structure (multiplier M and maker fees) for the 195 series that differ
+  from the standard, looked up by series, event or market ticker.
 - No dependencies outside the Python standard library. Typed (`py.typed`).
 
 Rates current as of: Kalshi 2026-11-10 (fee schedule 7.7.26), Polymarket US 2026-11-09,
 polymarket.com 2026-11-08. Each platform's date and source are in the rates file and in every result.
+Kalshi series list as of 2026-11-14.
 
 Other ways to get the same numbers, from the same rates file:
 
@@ -68,8 +73,9 @@ Options:
 | `--price` | all | Price of the contract you trade, in dollars (0 < price < 1) |
 | `--contracts` | all | Number of contracts (shares on polymarket.com): whole contracts on Kalshi, steps of 0.01 on Polymarket US, up to 6 decimals on polymarket.com |
 | `--side buy\|sell` | all | Changes the cash flow only; the fee formulas are symmetric |
-| `--maker` | all | Maker order. Kalshi: maker rate 0.0175 with M default 0, so pass `--multiplier 1` on markets with maker fees. Polymarket US and polymarket.com: makers pay no fee |
+| `--maker` | all | Maker order. Kalshi: maker rate 0.0175 with M default 0, so pass `--multiplier 1` (or `--series`) on markets with maker fees. Polymarket US and polymarket.com: makers pay no fee |
 | `--multiplier` | kalshi | Fee multiplier M (default 1 for takers, 0 for makers) |
+| `--series` | kalshi | Series, event or market ticker (e.g. `KXMLBGAME`): M and maker fees from the series list. Instead of `--multiplier` |
 | `--tier 1-4\|new` | polymarket-us | Taker tier, or `new` for the first 7 days of a new account (default 1) |
 | `--volume` | polymarket-us | Trailing 30-day taker volume in USD; picks the tier for you |
 | `--category` | polymarket | Market category, e.g. `Crypto`, `Sports`, `Politics` (required) |
@@ -103,7 +109,7 @@ b.exit_price, b.move_cents  # (Decimal('0.45'), Decimal('5.00'))
 ```
 
 Signature: `fee(platform, price, contracts, side="buy", tier=None, maker=False, *, category=None,
-multiplier=None, volume_30d=None, rates=None) -> FeeResult`. Platform names: `kalshi`,
+multiplier=None, series=None, volume_30d=None, rates=None) -> FeeResult`. Platform names: `kalshi`,
 `polymarket-us`, `polymarket` (also `polymarket.com`). Prices and counts can be `str`, `int`,
 `float` or `Decimal`; floats are converted through `str`, so `0.1` means exactly 0.1.
 
@@ -144,6 +150,69 @@ pmfees kalshi --price 0.25 --contracts 100 --multiplier 0.5
 # -> Kalshi taker fee: $0.6563 (2.63% of trade value at 25¢)
 ```
 
+### Per-series fees
+
+Kalshi publishes a `fee_type` and `fee_multiplier` for every series in its Trade API
+([Get Series List](https://docs.kalshi.com/api-reference/market/get-series)). The `fee_type` points
+to a table in the [fee schedule](https://kalshi.com/docs/kalshi-fee-schedule.pdf) (version 7.7.26,
+2026-07-07): `quadratic` (no maker fees), `quadratic_with_maker_fees` (makers pay 0.25 × the taker
+fee, i.e. 0.0175) and `quadratic_with_combo_maker_fees` (makers pay 0.5 × the taker fee). On
+2026-11-14, 16,247 of 16,442 series were standard (`quadratic`, M = 1). The other 195 are in
+`src/pmfees/data/kalshi_series.json`, with that date and the source links. Some examples: MLB
+first-innings and player-prop series have M = 0.5, a few long-dated political and economic series
+have M = 0, and about 160 series charge makers.
+
+Pass `series=` instead of `multiplier=`, with a series, event or market ticker:
+
+```python
+fee("kalshi", 0.50, 100, series="KXMLBF5").fee  # Decimal('0.8750')  M = 0.5
+fee("kalshi", 0.50, 100, series="KXMLBGAME-26NOV14NYYBOS-NYY").fee  # Decimal('0.8750')  series KXMLBGAME
+fee("kalshi", 0.50, 100, maker=True, series="KXMLBGAME").fee  # Decimal('0.2188')  0.5 × 0.0175 × 100 × 0.25
+fee("kalshi", 0.50, 100, maker=True, series="KXMLBF5").fee  # Decimal('0.0000')  no maker fees
+fee("kalshi", 0.50, 100, series="KXHIGHNY").fee  # Decimal('1.7500')  not listed, so standard
+```
+
+A ticker that is not in the file gets the standard structure, with a note in `FeeResult.notes`.
+`kalshi_series("KXMLBGAME")` returns the entry itself. Kalshi can change a series' fees at any time;
+`python3 scripts/update_kalshi_series.py` rebuilds the file from the API (`--check` only compares),
+and `load_kalshi_series(path)` or `PMFEES_KALSHI_SERIES_FILE` reads an updated copy.
+
+```bash
+pmfees kalshi --price 0.50 --contracts 100 --series KXMLBGAME
+# -> Kalshi taker fee: $0.875 (1.75% of trade value at 50¢)
+```
+
+## Fees per fill
+
+An order that fills at several prices pays a fee on every fill, and each fill is rounded on its own.
+`fill_fees()` prices each fill with `fee()` and adds them up. Fills are `(price, contracts)` pairs or
+dicts with `price`, `contracts` and optionally `maker`; the other arguments are the same as `fee()`:
+
+```python
+from pmfees import fill_fees
+
+fills = [(0.33, 1)] * 5
+r = fill_fees("kalshi", fills)
+r.fees  # (Decimal('0.0155'),) * 5: each fill 0.015477, rounded up to a centicent by itself
+fill_fees("kalshi", fills).fee  # Decimal('0.0775')
+fee("kalshi", 0.33, 5).fee  # Decimal('0.0774')  one fill of 5 rounds once
+fill_fees("kalshi", [(0.33, 7), (0.34, 3)], series="KXMLBGAME").fee  # Decimal('0.0778')  0.0542 + 0.0236
+```
+
+Within one order, Kalshi gives the extra rounding back: a fee accumulator collects each fill's
+rounding and refunds it in centicent steps, so the order's total converges to what one fill of the
+same size would cost ([Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md)).
+Pass `same_order=True` when the fills belong to one order:
+
+```python
+r = fill_fees("kalshi", fills, same_order=True)
+r.rebates  # 0.0001 refunded on the fifth fill
+fill_fees("kalshi", fills, same_order=True).fee  # Decimal('0.0774')
+```
+
+Without `same_order` (the default), the fills are treated as separate orders. `r.breakdown()` gives
+every fill's raw fee, rounded fee, rebate and net fee as strings, ready for JSON.
+
 ## The formulas
 
 | Platform | Taker fee | Rounding |
@@ -156,15 +225,16 @@ The numbers in this table are for reading only. The code takes every rate, tier,
 rounding rule (including Kalshi's fee + position cost basis) from `prediction_market_fees.json`.
 
 Not modelled: Polymarket US combo fees and maker rebates, polymarket.com maker and taker rebate
-programs, and per-market exceptions (polymarket.com
-markets carry their own `feeSchedule`, Kalshi series their own multiplier). Check the market when
-it matters.
+programs, polymarket.com per-market `feeSchedule` exceptions, and Kalshi's `flat` fee type
+(Specific Trading Fees Table; no series used it on 2026-11-14). Kalshi's per-series multipliers
+are in `kalshi_series.json` (see above). Check the market when it matters.
 
 ## Sources
 
 | Platform | Source | Rates current as of |
 |---|---|---|
 | Kalshi | <https://kalshi.com/docs/kalshi-fee-schedule.pdf> (version 7.7.26) | 2026-11-10 |
+| Kalshi series | <https://external-api.kalshi.com/trade-api/v2/series> (`fee_type`, `fee_multiplier`) | 2026-11-14 |
 | Polymarket US | <https://docs.polymarket.us/fees> | 2026-11-09 |
 | polymarket.com | <https://docs.polymarket.com/trading/fees> | 2026-11-08 |
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 (2026-11-14)
+
+- `fill_fees()`: the fee for a list of fills, each fill priced and rounded on its own (Kalshi: up to
+  a whole centicent per fill) and then summed. `same_order=True` applies Kalshi's per-order fee
+  accumulator, which refunds the extra rounding in centicent steps
+  ([Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding.md)). Returns `FillFees` with
+  per-fill results, rebates and a JSON-ready `breakdown()`.
+- Kalshi per-series fees: `fee(..., series="KXMLBGAME")`, `break_even(..., series=...)` and
+  `pmfees kalshi --series`. M and maker fees come from `src/pmfees/data/kalshi_series.json`, built
+  from Kalshi's Get Series List (`fee_type`, `fee_multiplier`) on 2026-11-14: the 195 of 16,442
+  series that differ from the standard. Event and market tickers resolve to their series; unlisted
+  tickers are standard, with a note. `fee_type` follows the fee schedule (7.7.26, 2026-07-07):
+  makers pay 0.25 × the taker fee on `quadratic_with_maker_fees`, 0.5 × on
+  `quadratic_with_combo_maker_fees`, nothing on `quadratic`.
+- `kalshi_series()`, `load_kalshi_series()` (or `PMFEES_KALSHI_SERIES_FILE`) and
+  `scripts/update_kalshi_series.py` to rebuild or `--check` the series file.
+
 ## 0.1.1 (2026-11-11)
 
 - `contracts` must match the platform's order size step: whole contracts on Kalshi, 0.01 on
