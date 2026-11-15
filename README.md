@@ -1,5 +1,7 @@
 # pmfees
 
+[![Listed on Awesome Prediction Market Toolkit](https://img.shields.io/badge/listed%20on-Prediction%20Market%20Toolkit-blue)](https://github.com/talhareltal/awesome-prediction-market-toolkit)
+
 Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket US** and
 **polymarket.com** (international), as a small Python library and a command line tool.
 
