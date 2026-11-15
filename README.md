@@ -15,7 +15,7 @@ Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket 
   from the standard, looked up by series, event or market ticker.
 - No dependencies outside the Python standard library. Typed (`py.typed`).
 
-Rates current as of: Kalshi 2026-11-10 (fee schedule 7.7.26), Polymarket US 2026-11-09,
+Rates current as of: Kalshi 2026-11-10 (fee schedule 7.7.26), Polymarket US 2026-11-15,
 polymarket.com 2026-11-08. Each platform's date and source are in the rates file and in every result.
 Kalshi series list as of 2026-11-14.
 
@@ -245,7 +245,7 @@ are in `kalshi_series.json` (see above). Check the market when it matters.
 |---|---|---|
 | Kalshi | <https://kalshi.com/docs/kalshi-fee-schedule.pdf> (version 7.7.26) | 2026-11-10 |
 | Kalshi series | <https://external-api.kalshi.com/trade-api/v2/series> (`fee_type`, `fee_multiplier`) | 2026-11-14 |
-| Polymarket US | <https://docs.polymarket.us/fees> | 2026-11-09 |
+| Polymarket US | <https://docs.polymarket.us/fees> | 2026-11-15 |
 | polymarket.com | <https://docs.polymarket.com/trading/fees> | 2026-11-08 |
 
 The tests lock the formulas to the worked examples and fee tables on these pages, with a link
