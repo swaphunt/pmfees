@@ -36,10 +36,10 @@
     ]
   },
   "polymarket_us": {
-    "as_of": "2026-11-09",
+    "as_of": "2026-11-15",
     "name": "Polymarket US (CFTC-regulated app)",
     "source_url": "https://docs.polymarket.us/fees",
-    "effective": "2026-11-06 13:00 ET",
+    "effective": "2026-11-14 00:00 ET",
     "formula": "fee = Θ × C × p × (1 − p), one curve for all markets",
     "taker_tiers_30d_volume_usd": [
       {
@@ -65,10 +65,10 @@
       "note": "Rounded to the nearest $0.01 with banker's rounding (half to even)."
     },
     "new_accounts": "Θ = 0.0695 for the first 7 days",
-    "makers": "no fee; maker rebates start from $10 million in maker volume",
+    "makers": "no fee on standard markets; maker rebates start from $10 million in maker volume. Combo makers pay 0.03 × C × p × (1 − p) (not modelled)",
     "previous": "Θ = 0.0695 for all accounts (0.06 until 2026-09-17)",
     "notes": [
-      "Combo taker fees (not modelled in the calculator): until 2026-11-11 13:00 ET fee = C × p × [0.0695 × (1 − p) + 0.085 × (1 − p)^4]; from 2026-11-11 13:00 ET fee = C × p × [Θ × (1 − p) + 0.06 × (1 − p)^4], with Θ the account's taker coefficient. Source: docs.polymarket.us/fees (announced as confirmed, seen 2026-11-09)."
+      "Combo fees (not modelled in the calculator): taker fee = C × p × [Θ × (1 − p) + 0.06 × (1 − p)^4] since 2026-11-11 13:00 ET (before: C × p × [0.0695 × (1 − p) + 0.085 × (1 − p)^4]), with Θ the account's taker coefficient; combo maker fee = 0.03 × C × p × (1 − p), and combo fills carry no maker rebate. Source: docs.polymarket.us/fees (seen 2026-11-15)."
     ]
   },
   "kalshi": {
