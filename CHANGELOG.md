@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0 (2026-11-17)
+
+polymarket.com fee and rebate changes effective **2026-11-20 23:59 UTC**
+([Upcoming Fee and Rebate Changes](https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026)).
+
+- Dated rates: the rates file has `polymarket_global.schedule`, and `fee()`, `fill_fees()` and
+  `break_even()` take `at=` (fill time: an aware `datetime` or ISO 8601 with an offset; default now).
+  Fills before the effective time use the old coefficients, fills at or after it the new ones. In
+  `fill_fees()` each fill mapping can carry its own `at`. `pmfees polymarket --at TIME`.
+  **The default is now, so from 2026-11-21 00:00 UTC on, calls without `at=` give the new rates.**
+- New coefficients: Crypto 0.01 (BTC 5-/15-minute up/down 0.05 as `Crypto (BTC 5m/15m up/down)`),
+  Politics 0.01 (elections 0.05 as `Politics (elections)`), Economics, Culture, Weather and Mentions
+  0.01, Finance and Tech 0.05; Sports, Combos and Other 0.05, Geopolitics 0 as before. Before the
+  change a subcategory uses its parent category's rate.
+- Rebates from the change: `polymarket_rebate(role, taker_fees, tier= | weighted_volume_30d=)`,
+  `polymarket_rebate_tier()` and `pmfees polymarket-rebate`. Taker tiers None/Gold/Platinum/Diamond/
+  Obsidian/Onyx (0/10/25/40/50/60%), maker tiers None/Tier 1-4 (0/3/7/10/15% of the taker fees the
+  maker fills generated); Combos and fee-free fills earn no maker rebate. Earlier rebate programs are
+  not modelled (`ValueError` for an earlier `at`).
+- `weighted_volume(fills)`: shares × price × (1 − price), the measure the tiers use.
+- `fee()` details for polymarket.com now include `fill_time` and `rate_period`; `source_url` and
+  `rates_as_of` are those of the period the fill falls in.
+
 ## 0.2.0 (2026-11-14)
 
 - `fill_fees()`: the fee for a list of fills. By default (`same_order=True`) the fills are one

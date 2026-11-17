@@ -4,15 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from decimal import ROUND_DOWN, ROUND_UP, Decimal
 from typing import Literal
 
 from .kalshi_series import KalshiSeries, default_kalshi_series
-from .rates import Rates, Rounding, default_rates
+from .rates import GlobalPeriod, Rates, RebateTier, Rounding, default_rates
 
 Platform = Literal["kalshi", "polymarket-us", "polymarket"]
 Side = Literal["buy", "sell"]
 Number = Decimal | int | float | str
+When = datetime | str
+"""A fill time: a timezone-aware ``datetime`` or an ISO 8601 string with an offset (``2026-11-21T08:00Z``)."""
 
 PLATFORMS: tuple[Platform, ...] = ("kalshi", "polymarket-us", "polymarket")
 
@@ -44,6 +47,31 @@ def _num(value: Number, what: str) -> Decimal:
     if not d.is_finite():
         raise ValueError(f"{what} must be finite")
     return d
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _when(at: When | None) -> datetime:
+    """``at`` as an aware UTC datetime; ``None`` is now."""
+    if at is None:
+        return _now()
+    if isinstance(at, str):
+        text = at.strip()
+        try:
+            at = datetime.fromisoformat(text[:-1] + "+00:00" if text[-1:] in ("Z", "z") else text)
+        except ValueError as exc:
+            raise ValueError(f"at must be an ISO 8601 time, e.g. 2026-11-21T08:00:00Z; got {text!r}") from exc
+    if not isinstance(at, datetime):
+        raise TypeError("at must be a datetime or an ISO 8601 string")
+    if at.tzinfo is None or at.utcoffset() is None:
+        raise ValueError("at needs a timezone (e.g. 2026-11-21T08:00:00Z); naive times are ambiguous")
+    return at.astimezone(timezone.utc)
+
+
+def _utc_text(when: datetime) -> str:
+    return when.strftime("%Y-%m-%d %H:%M UTC")
 
 
 def platform_key(platform: str) -> Platform:
@@ -151,14 +179,33 @@ def _us_tier(rates: Rates, tier: int | str | None, volume_30d: Number | None) ->
     raise ValueError(f"unknown Polymarket US tier {tier!r}; use one of: {valid}")
 
 
-def _global_category(rates: Rates, category: str | None) -> tuple[str, Decimal]:
-    cats = rates.polymarket_global.rates
+def _global_category(period: GlobalPeriod, category: str | None) -> tuple[str, Decimal, str | None]:
+    """(category, rate, note). A subcategory such as ``Politics (elections)`` falls back to its parent
+    category in a period that does not list it (before 2026-11-20 there was one Politics rate)."""
+    cats = period.rates
     if category is None:
         raise ValueError(f"polymarket.com needs a category; one of: {', '.join(cats)}")
+    wanted = category.strip().lower()
     for name, rate in cats.items():
-        if name.lower() == category.strip().lower():
-            return name, rate
+        if name.lower() == wanted:
+            return name, rate, None
+    parent = wanted.split("(", 1)[0].strip()
+    if parent != wanted:
+        for name, rate in cats.items():
+            if name.lower() == parent:
+                return (
+                    name,
+                    rate,
+                    f"{category.strip()} uses the {name} rate in this period (no separate rate).",
+                )
     raise ValueError(f"unknown polymarket.com category {category!r}; use one of: {', '.join(cats)}")
+
+
+def _period_label(rates: Rates, period: GlobalPeriod) -> str:
+    if period.effective is not None:
+        return f"from {_utc_text(period.effective)}"
+    first = rates.polymarket_global.schedule[0].effective if rates.polymarket_global.schedule else None
+    return f"before {_utc_text(first)}" if first is not None else "current"
 
 
 # Smallest order size step per platform (official docs):
@@ -192,6 +239,7 @@ def fee(
     multiplier: Number | None = None,
     series: str | KalshiSeries | None = None,
     volume_30d: Number | None = None,
+    at: When | None = None,
     rates: Rates | None = None,
 ) -> FeeResult:
     """Trading fee for one order.
@@ -213,6 +261,10 @@ def fee(
       ``volume_30d`` (trailing 30-day taker volume in USD). Default: Tier 1.
       Makers pay no fee.
     * ``polymarket`` (polymarket.com): ``category`` is required. Makers pay no fee.
+      ``at`` is the fill time (default: now). The rates file can hold dated changes
+      (``schedule``): a fill before a change's effective time uses the older rates, a fill
+      at or after it the newer ones (from 2026-11-20 23:59 UTC: Crypto 0.01, Politics 0.01,
+      ``Politics (elections)`` and ``Crypto (BTC 5m/15m up/down)`` 0.05, ...).
     """
     r = rates if rates is not None else default_rates()
     key = platform_key(platform)
@@ -235,6 +287,10 @@ def fee(
         raise ValueError("series only applies to kalshi")
     if key != "polymarket" and category is not None:
         raise ValueError("category only applies to polymarket (polymarket.com)")
+    if key != "polymarket" and at is not None:
+        raise ValueError(
+            "at only applies to polymarket (polymarket.com); the other platforms have one rate set"
+        )
 
     role: Literal["taker", "maker"] = "maker" if maker else "taker"
     details: dict[str, str] = {}
@@ -295,9 +351,15 @@ def fee(
         rounding, formula, source, as_of = us.rounding, us.formula, us.source_url, us.as_of
     else:
         g = r.polymarket_global
-        cat, rate = _global_category(r, category)
+        when = _when(at)
+        period = g.period_at(when)
+        cat, rate, cat_note = _global_category(period, category)
         details["category"] = cat
         details["category_rate"] = str(rate)
+        details["fill_time"] = when.isoformat().replace("+00:00", "Z")
+        details["rate_period"] = _period_label(r, period)
+        if cat_note:
+            notes.append(cat_note)
         if maker:
             coefficient = Decimal(0)
             notes.append("polymarket.com: makers are never charged fees.")
@@ -306,7 +368,7 @@ def fee(
         notes.append(
             "Each market's own feeSchedule is authoritative; series can differ from the category rate."
         )
-        rounding, formula, source, as_of = g.rounding, g.formula, g.source_url, g.as_of
+        rounding, formula, source, as_of = g.rounding, g.formula, period.source_url, period.as_of or g.as_of
 
     raw = _quadratic(coefficient, c, p)
     # Kalshi (basis fee_plus_position_cost) rounds fee + C × P; the others round the fee alone.
@@ -365,6 +427,7 @@ def break_even(
     multiplier: Number | None = None,
     series: str | KalshiSeries | None = None,
     volume_30d: Number | None = None,
+    at: When | None = None,
     rates: Rates | None = None,
 ) -> BreakEven:
     """How far the price must move before closing the position is in profit after fees.
@@ -372,17 +435,20 @@ def break_even(
     Opens ``contracts`` at ``price`` (``side="buy"`` buys, ``"sell"`` sells) and closes
     them at a later price on the ``tick`` grid, paying the fee on both orders with the
     same role and options. Returns the first exit price where
-    proceeds − cost − entry fee − exit fee > 0.
+    proceeds − cost − entry fee − exit fee > 0. On polymarket.com both orders use the rates
+    in force at ``at`` (default: now).
     """
     r = rates if rates is not None else default_rates()
+    if at is None and platform_key(platform) == "polymarket":
+        at = _now()
     t = _num(tick, "tick")
     if t <= 0:
         raise ValueError("tick must be > 0")
 
-    def leg(at: Number, leg_side: Side) -> FeeResult:
+    def leg(leg_price: Number, leg_side: Side) -> FeeResult:
         return fee(
             platform,
-            at,
+            leg_price,
             contracts,
             leg_side,
             tier,
@@ -391,6 +457,7 @@ def break_even(
             multiplier=multiplier,
             series=series,
             volume_30d=volume_30d,
+            at=at,
             rates=r,
         )
 
@@ -430,7 +497,8 @@ def break_even(
 
 
 FillInput = tuple[Number, Number] | Mapping[str, object]
-"""A fill: ``(price, contracts)`` or a mapping with ``price``, ``contracts`` and optionally ``maker``."""
+"""A fill: ``(price, contracts)`` or a mapping with ``price``, ``contracts`` and optionally ``maker``
+and ``at`` (fill time, polymarket.com only)."""
 
 SIX_DP = Decimal("0.000001")
 
@@ -506,7 +574,7 @@ class FillFees:
         }
 
 
-def _fill(item: FillInput, i: int) -> tuple[Number, Number, bool | None]:
+def _fill(item: FillInput, i: int) -> tuple[Number, Number, bool | None, When | None]:
     if isinstance(item, Mapping):
         try:
             price, contracts = item["price"], item["contracts"]
@@ -515,9 +583,9 @@ def _fill(item: FillInput, i: int) -> tuple[Number, Number, bool | None]:
         maker = item.get("maker")
         if maker is not None and not isinstance(maker, bool):
             raise ValueError(f"fill {i}: 'maker' must be True or False")
-        return price, contracts, maker  # type: ignore[return-value]
+        return price, contracts, maker, item.get("at")  # type: ignore[return-value]
     if isinstance(item, (tuple, list)) and len(item) == 2:
-        return item[0], item[1], None
+        return item[0], item[1], None, None
     raise ValueError(f"fill {i}: expected (price, contracts) or a mapping with price and contracts")
 
 
@@ -533,6 +601,7 @@ def fill_fees(
     multiplier: Number | None = None,
     series: str | KalshiSeries | None = None,
     volume_30d: Number | None = None,
+    at: When | None = None,
     rates: Rates | None = None,
 ) -> FillFees:
     """Fee per fill, summed: each fill is priced and rounded on its own with ``fee()``.
@@ -550,13 +619,25 @@ def fill_fees(
 
     Polymarket US and polymarket.com document no such refund, so there every fill is always
     rounded on its own and ``same_order`` has no effect.
+
+    polymarket.com: each fill uses the rates in force at its own ``at`` (from the mapping), else
+    the ``at`` argument, else now. Fills of one order on both sides of a dated change are
+    therefore priced with the old and the new rates respectively.
     """
     r = rates if rates is not None else default_rates()
     key = platform_key(platform)
     accumulate = same_order and key == "kalshi"
+    if at is not None and key != "polymarket":
+        raise ValueError(
+            "at only applies to polymarket (polymarket.com); the other platforms have one rate set"
+        )
     results: list[FeeResult] = []
     for i, item in enumerate(fills):
-        price, contracts, fill_maker = _fill(item, i)
+        price, contracts, fill_maker, fill_at = _fill(item, i)
+        if fill_at is not None and key != "polymarket":
+            raise ValueError(f"fill {i}: 'at' only applies to polymarket (polymarket.com)")
+        if key == "polymarket" and fill_at is None:
+            fill_at = at if at is not None else _now()
         try:
             results.append(
                 fee(
@@ -570,6 +651,7 @@ def fill_fees(
                     multiplier=multiplier,
                     series=series,
                     volume_30d=volume_30d,
+                    at=fill_at,
                     rates=r,
                 )
             )
@@ -598,4 +680,154 @@ def fill_fees(
         rebates=tuple(rebates),
         same_order=accumulate,
         unrebated_rounding=held,
+    )
+
+
+def weighted_volume(fills: Iterable[FillInput]) -> Decimal:
+    """polymarket.com weighted volume: the sum of shares × price × (1 − price) over ``fills``.
+
+    This is what the rebate tiers from 2026-11-20 23:59 UTC are measured in (over 30 days),
+    not dollar volume (shares × price). Sum maker and taker fills separately: maker fills
+    count only toward the maker tier, taker fills only toward the taker tier.
+    """
+    total = Decimal(0)
+    for i, item in enumerate(fills):
+        price, contracts, _maker, _at = _fill(item, i)
+        p, c = _num(price, f"fill {i}: price"), _num(contracts, f"fill {i}: contracts")
+        if not ONE > p > 0:
+            raise ValueError(f"fill {i}: price must be between 0 and 1 (exclusive), in dollars")
+        if c <= 0:
+            raise ValueError(f"fill {i}: contracts must be > 0")
+        total += c * p * (ONE - p)
+    return total
+
+
+Role = Literal["maker", "taker"]
+
+
+def _rebate_period(role: str, at: When | None, rates: Rates) -> tuple[GlobalPeriod, tuple[RebateTier, ...]]:
+    if role not in ("maker", "taker"):
+        raise ValueError("role must be 'maker' or 'taker'")
+    when = _when(at)
+    period = rates.polymarket_global.period_at(when)
+    tiers = period.maker_rebate_tiers if role == "maker" else period.taker_rebate_tiers
+    if not tiers:
+        later = [p.effective for p in rates.polymarket_global.schedule if p.effective and p.effective > when]
+        since = f" from {_utc_text(later[0])}" if later else ""
+        raise ValueError(
+            f"polymarket.com {role} rebate tiers are only modelled{since}; at {_utc_text(when)} "
+            "Polymarket ran the older programs (category multipliers, daily maker rebate pools)"
+        )
+    return period, tiers
+
+
+def polymarket_rebate_tier(
+    role: Role,
+    weighted_volume_30d: Number,
+    *,
+    at: When | None = None,
+    rates: Rates | None = None,
+) -> RebateTier:
+    """The polymarket.com rebate tier for a 30-day weighted volume (see ``weighted_volume()``)."""
+    r = rates if rates is not None else default_rates()
+    _period, tiers = _rebate_period(role, at, r)
+    vol = _num(weighted_volume_30d, "weighted_volume_30d")
+    if vol < 0:
+        raise ValueError("weighted_volume_30d must be >= 0")
+    for t in tiers:
+        if t.below is None or vol < t.below:
+            return t
+    return tiers[-1]
+
+
+@dataclass(frozen=True)
+class Rebate:
+    """A polymarket.com maker or taker rebate on taker fees."""
+
+    role: Role
+    tier: RebateTier
+    taker_fees: Decimal
+    """Taker fees the rebate is a share of: paid by you (taker) or generated by your fills (maker)."""
+    rebate: Decimal
+    """Exact rebate in USD (Polymarket documents no rounding for rebates)."""
+    basis: str
+    source_url: str
+    rates_as_of: str
+    notes: tuple[str, ...] = ()
+
+    @property
+    def rate(self) -> Decimal:
+        return self.tier.rebate
+
+    def breakdown(self) -> dict[str, str]:
+        return {
+            "role": self.role,
+            "tier": self.tier.name,
+            "rebate_rate": str(self.tier.rebate),
+            "taker_fees_usd": str(self.taker_fees),
+            "rebate_usd": str(self.rebate),
+            "basis": self.basis,
+            "source_url": self.source_url,
+            "rates_as_of": self.rates_as_of,
+        }
+
+
+def polymarket_rebate(
+    role: Role,
+    taker_fees: Number,
+    *,
+    tier: str | None = None,
+    weighted_volume_30d: Number | None = None,
+    category: str | None = None,
+    at: When | None = None,
+    rates: Rates | None = None,
+) -> Rebate:
+    """polymarket.com rebate from 2026-11-20 23:59 UTC: the tier's share of ``taker_fees``.
+
+    ``role="taker"``: ``taker_fees`` are the taker fees you paid; tiers None, Gold, Platinum,
+    Diamond, Obsidian, Onyx. ``role="maker"``: ``taker_fees`` are the taker fees your eligible
+    maker fills generated; tiers None, Tier 1-4. Give the tier by name (``tier="Tier 4"``) or
+    by ``weighted_volume_30d`` (30-day weighted volume, see ``weighted_volume()``).
+    ``category`` ``Combos`` or ``Geopolitics`` (fee-free) earn no maker rebate.
+
+    Example from Polymarket: a Tier 4 maker whose fills generate $100 in taker fees earns $15.
+    """
+    r = rates if rates is not None else default_rates()
+    period, tiers = _rebate_period(role, at, r)
+    if (tier is None) == (weighted_volume_30d is None):
+        raise ValueError("give either tier or weighted_volume_30d")
+    if tier is not None:
+        wanted = tier.lower().replace(" ", "")
+        found = [t for t in tiers if t.name.lower().replace(" ", "") == wanted]
+        if not found:
+            raise ValueError(
+                f"unknown {role} rebate tier {tier!r}; use one of: {', '.join(t.name for t in tiers)}"
+            )
+        chosen = found[0]
+    else:
+        chosen = polymarket_rebate_tier(role, weighted_volume_30d, at=at, rates=r)  # type: ignore[arg-type]
+    fees = _num(taker_fees, "taker_fees")
+    if fees < 0:
+        raise ValueError("taker_fees must be >= 0")
+    notes: list[str] = []
+    amount = fees * chosen.rebate
+    excluded = {c.lower() for c in period.no_maker_rebate_categories}
+    if role == "maker" and category is not None and category.strip().lower() in excluded:
+        amount = Decimal(0)
+        notes.append(f"{category.strip()} fills earn no maker rebates.")
+    if role == "maker":
+        notes.append("Maker fills count only toward the maker tier.")
+        basis = "share of the taker fees generated by your eligible maker fills"
+    else:
+        notes.append("Taker fills count only toward the taker tier.")
+        basis = "share of the taker fees you paid"
+    return Rebate(
+        role=role,
+        tier=chosen,
+        taker_fees=fees,
+        rebate=amount,
+        basis=basis,
+        source_url=period.source_url,
+        rates_as_of=period.as_of,
+        notes=tuple(notes),
     )
