@@ -96,6 +96,7 @@ class ReadmeTest(unittest.TestCase):
             "polymarket_rebate": polymarket_rebate,
             "polymarket_rebate_tier": polymarket_rebate_tier,
             "weighted_volume": weighted_volume,
+            "t": "2026-11-21T00:00Z",
         }
         pattern = re.compile(
             r"^((?:polymarket_rebate|weighted_volume)\(.*\)(?:\.rebate)?)\s+# Decimal\('([0-9.]+)'\)", re.M

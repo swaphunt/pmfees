@@ -174,11 +174,10 @@ from pmfees import polymarket_rebate, polymarket_rebate_tier, weighted_volume
 
 weighted_volume([(0.40, 1000)])  # Decimal('240.00')  not dollar volume ($400)
 polymarket_rebate_tier("taker", 1_500_000, at="2026-11-21T00:00Z").name  # 'Platinum'
+t = "2026-11-21T00:00Z"
 r = polymarket_rebate("maker", 100, tier="Tier 4", at="2026-11-21T00:00Z")
 r.rebate  # Decimal('15.00')  Polymarket's own example
-polymarket_rebate(
-    "maker", 100, weighted_volume_30d=2_500_000, at="2026-11-21T00:00Z"
-).rebate  # Decimal('7.00')
+polymarket_rebate("maker", 100, weighted_volume_30d=2_500_000, at=t).rebate  # Decimal('7.00')
 ```
 
 Rebates before the change (category multipliers, Bronze/Silver, daily maker rebate pools) are not
