@@ -9,7 +9,7 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
-from pmfees import fee, fill_fees, load_rates
+from pmfees import fee, fill_fees, load_rates, polymarket_rebate, polymarket_rebate_tier, weighted_volume
 from pmfees.cli import main
 
 README = Path(__file__).resolve().parents[1] / "README.md"
@@ -44,8 +44,16 @@ class ReadmeTest(unittest.TestCase):
                 "Polymarket US taker fee: $2.38 (4.76% of trade value at 50¢)",
             ),
             (
-                "polymarket --price 0.25 --contracts 100 --category Crypto",
+                "polymarket --price 0.25 --contracts 100 --category Crypto --at 2026-11-20T12:00Z",
                 "polymarket.com taker fee: $1.3125 (5.25% of trade value at 25¢)",
+            ),
+            (
+                "polymarket --price 0.25 --contracts 100 --category Crypto --at 2026-11-21T00:00Z",
+                "polymarket.com taker fee: $0.1875 (0.75% of trade value at 25¢)",
+            ),
+            (
+                "polymarket-rebate --role maker --taker-fees 100 --tier Tier4 --at 2026-11-21T00:00Z",
+                "polymarket.com maker rebate: $15.00",
             ),
             (
                 "kalshi --price 0.25 --contracts 100 --multiplier 0.5",
@@ -81,6 +89,30 @@ class ReadmeTest(unittest.TestCase):
         for expr, expected in found:
             with self.subTest(expr=expr):
                 self.assertEqual(eval(expr, env), Decimal(expected))
+
+    def test_polymarket_rebate_examples(self) -> None:
+        """The rebate and weighted-volume lines in the README run and give what they say."""
+        env = {
+            "polymarket_rebate": polymarket_rebate,
+            "polymarket_rebate_tier": polymarket_rebate_tier,
+            "weighted_volume": weighted_volume,
+            "t": "2026-11-21T00:00Z",
+        }
+        pattern = re.compile(
+            r"^((?:polymarket_rebate|weighted_volume)\(.*\)(?:\.rebate)?)\s+# Decimal\('([0-9.]+)'\)", re.M
+        )
+        found = pattern.findall(self.text)
+        self.assertGreaterEqual(len(found), 2)
+        for expr, expected in found:
+            with self.subTest(expr=expr):
+                self.assertEqual(eval(expr, env), Decimal(expected))
+        self.assertIn('r = polymarket_rebate("maker", 100, tier="Tier 4", at="2026-11-21T00:00Z")', self.text)
+        r = polymarket_rebate("maker", 100, tier="Tier 4", at="2026-11-21T00:00Z")
+        self.assertEqual(r.rebate, Decimal("15.00"))
+        tier_line = 'polymarket_rebate_tier("taker", 1_500_000, at="2026-11-21T00:00Z").name  # \'Platinum\''
+        self.assertIn(tier_line, self.text)
+        self.assertEqual(polymarket_rebate_tier("taker", 1_500_000, at="2026-11-21T00:00Z").name, "Platinum")
+        self.assertIn("https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026", self.text)
 
     def test_quotes_kalshi_fee_rounding_page(self) -> None:
         self.assertIn("https://docs.kalshi.com/getting_started/fee_rounding.md", self.text)
