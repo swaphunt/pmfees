@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, ROUND_UP, Decimal
 from importlib import resources
 from pathlib import Path
@@ -67,16 +68,60 @@ class UsTier:
 
 
 @dataclass(frozen=True)
+class RebateTier:
+    """A polymarket.com rebate tier by 30-day weighted volume (shares × price × (1 − price))."""
+
+    name: str
+    minimum: Decimal
+    below: Decimal | None
+    rebate: Decimal
+    """Share of the taker fees the tier pays back, e.g. 0.15 for 15%."""
+
+
+@dataclass(frozen=True)
+class GlobalPeriod:
+    """polymarket.com rates in force from ``effective`` (None: before the first dated change)."""
+
+    effective: datetime | None
+    source_url: str
+    as_of: str
+    rates: dict[str, Decimal]
+    notes: tuple[str, ...]
+    rate_labels: dict[str, str] = field(default_factory=dict)
+    taker_rebate_tiers: tuple[RebateTier, ...] = ()
+    maker_rebate_tiers: tuple[RebateTier, ...] = ()
+    no_maker_rebate_categories: tuple[str, ...] = ()
+    summary: str = ""
+
+
+@dataclass(frozen=True)
 class PolymarketGlobal:
     name: str
     source_url: str
     formula: str
     rates: dict[str, Decimal]
+    """Rates before the first entry in ``schedule`` (or always, when there is none)."""
     rounding: Rounding
     maker_rebate_share: dict[str, Decimal]
     notes: tuple[str, ...]
     as_of: str = ""
     """Date these rates were last checked against ``source_url``."""
+    schedule: tuple[GlobalPeriod, ...] = ()
+    """Dated changes, oldest first: a fill at or after ``effective`` uses that period."""
+
+    @property
+    def base_period(self) -> GlobalPeriod:
+        return GlobalPeriod(
+            effective=None, source_url=self.source_url, as_of=self.as_of, rates=self.rates, notes=self.notes
+        )
+
+    def period_at(self, when: datetime) -> GlobalPeriod:
+        """The rates in force at ``when`` (timezone-aware)."""
+        current = self.base_period
+        for period in self.schedule:
+            if period.effective is not None and when >= period.effective:
+                current = period
+        return current
 
 
 @dataclass(frozen=True)
@@ -135,6 +180,65 @@ def _dec(value: Any, where: str) -> Decimal:
     if d < 0:
         raise RatesError(f"{where}: negative value {value!r}")
     return d
+
+
+def _effective(value: Any, where: str) -> datetime:
+    text = str(value).strip()
+    try:
+        when = datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+    except ValueError as exc:
+        raise RatesError(f"{where}: not an ISO 8601 time: {value!r}") from exc
+    if when.tzinfo is None:
+        raise RatesError(f"{where}: the time needs a timezone, e.g. 2026-11-20T23:59:00Z")
+    return when.astimezone(timezone.utc)
+
+
+def _rebate_tiers(raw: Any, where: str) -> tuple[RebateTier, ...]:
+    if raw is None:
+        return ()
+    tiers: list[RebateTier] = []
+    minimum = Decimal(0)
+    for i, t in enumerate(raw):
+        w = f"{where}[{i}]"
+        below = _get(t, "below", w)
+        b = None if below is None else _dec(below, w)
+        if b is not None and b <= minimum:
+            raise RatesError(f"{w}: tiers must be ordered by volume")
+        tiers.append(RebateTier(str(_get(t, "name", w)), minimum, b, _dec(_get(t, "rebate", w), w)))
+        if b is None and i != len(raw) - 1:
+            raise RatesError(f"{w}: only the last tier can have below = null")
+        minimum = b if b is not None else minimum
+    if tiers and tiers[-1].below is not None:
+        raise RatesError(f"{where}: the last tier must have below = null")
+    return tuple(tiers)
+
+
+def _schedule(raw: Any) -> tuple[GlobalPeriod, ...]:
+    periods: list[GlobalPeriod] = []
+    for i, e in enumerate(raw or ()):
+        w = f"polymarket_global.schedule[{i}]"
+        when = _effective(_get(e, "effective", w), f"{w}.effective")
+        if periods and periods[-1].effective is not None and when <= periods[-1].effective:
+            raise RatesError(f"{w}: schedule must be ordered by effective time")
+        periods.append(
+            GlobalPeriod(
+                effective=when,
+                source_url=str(_get(e, "source_url", w)),
+                as_of=str(e.get("as_of", "")),
+                rates={c: _dec(r, f"{w}.rates.{c}") for c, r in _get(e, "rates", w).items()},
+                notes=tuple(e.get("notes", ())),
+                rate_labels={str(k): str(v) for k, v in e.get("rate_labels", {}).items()},
+                taker_rebate_tiers=_rebate_tiers(
+                    e.get("taker_rebate_tiers_30d_weighted_volume_usd"), f"{w}.taker_rebate_tiers"
+                ),
+                maker_rebate_tiers=_rebate_tiers(
+                    e.get("maker_rebate_tiers_30d_weighted_volume_usd"), f"{w}.maker_rebate_tiers"
+                ),
+                no_maker_rebate_categories=tuple(str(c) for c in e.get("no_maker_rebate_categories", ())),
+                summary=str(e.get("summary", "")),
+            )
+        )
+    return tuple(periods)
 
 
 def _rounding(obj: dict[str, Any], where: str) -> Rounding:
@@ -203,6 +307,7 @@ def parse_rates(data: dict[str, Any], path: str = "<memory>") -> Rates:
             },
             notes=tuple(g.get("notes", ())),
             as_of=str(g.get("as_of") or as_of),
+            schedule=_schedule(g.get("schedule")),
         ),
         polymarket_us=PolymarketUS(
             name=str(_get(us, "name", "polymarket_us")),

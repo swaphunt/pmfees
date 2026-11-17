@@ -15,6 +15,8 @@ Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket 
   its own for fills from different orders.
 - Kalshi's per-series fee structure (multiplier M and maker fees) for the 195 series that differ
   from the standard, looked up by series, event or market ticker.
+- polymarket.com's fee and rebate changes from 2026-11-20 23:59 UTC: every fill is priced with the
+  rates in force at its own time, plus the new taker and maker rebate tiers on weighted volume.
 - No dependencies outside the Python standard library. Typed (`py.typed`).
 
 Rates current as of: Kalshi 2026-11-10 (fee schedule 7.7.26), Polymarket US 2026-11-15,
@@ -59,9 +61,17 @@ More examples:
 pmfees polymarket-us --price 0.50 --contracts 100
 # -> Polymarket US taker fee: $2.38 (4.76% of trade value at 50¢)   [0.095 × 100 × 0.5 × 0.5 = 2.375]
 
-# polymarket.com, Crypto category
-pmfees polymarket --price 0.25 --contracts 100 --category Crypto
+# polymarket.com, Crypto category, a fill before the change on 2026-11-20 23:59 UTC
+pmfees polymarket --price 0.25 --contracts 100 --category Crypto --at 2026-11-20T12:00Z
 # -> polymarket.com taker fee: $1.3125 (5.25% of trade value at 25¢)
+
+# The same fill after the change (Crypto 0.07 -> 0.01); without --at the time is now
+pmfees polymarket --price 0.25 --contracts 100 --category Crypto --at 2026-11-21T00:00Z
+# -> polymarket.com taker fee: $0.1875 (0.75% of trade value at 25¢)
+
+# polymarket.com maker rebate from 2026-11-20 23:59 UTC: Tier 4, fills that generated $100 in taker fees
+pmfees polymarket-rebate --role maker --taker-fees 100 --tier Tier4 --at 2026-11-21T00:00Z
+# -> polymarket.com maker rebate: $15.00
 
 # Break-even: buy 100 on Kalshi at 50¢, when is selling in profit?
 pmfees kalshi --price 0.50 --contracts 100 --break-even
@@ -80,12 +90,16 @@ Options:
 | `--series` | kalshi | Series, event or market ticker (e.g. `KXMLBGAME`): M and maker fees from the series list. Instead of `--multiplier` |
 | `--tier 1-4\|new` | polymarket-us | Taker tier, or `new` for the first 7 days of a new account (default 1) |
 | `--volume` | polymarket-us | Trailing 30-day taker volume in USD; picks the tier for you |
-| `--category` | polymarket | Market category, e.g. `Crypto`, `Sports`, `Politics` (required) |
+| `--category` | polymarket | Market category, e.g. `Crypto`, `Sports`, `Politics`, from 2026-11-20 23:59 UTC also `Politics (elections)` and `Crypto (BTC 5m/15m up/down)` (required) |
+| `--at` | polymarket | Fill time, ISO 8601 with an offset (`2026-11-21T08:00Z`); picks the rates in force then (default: now) |
 | `--break-even`, `--tick` | all | Also print the break-even move (price step, default 0.01) |
 | `--json` | all | Machine-readable output |
 | `--rates PATH` | all | Use an updated rates file |
 
-`pmfees rates` prints the loaded rates and their date.
+`pmfees rates` prints the loaded rates and their date, including dated changes.
+
+`pmfees polymarket-rebate --role maker|taker --taker-fees USD (--tier NAME | --weighted-volume USD)
+[--category C] [--at TIME]` prints a polymarket.com rebate from 2026-11-20 23:59 UTC (see below).
 
 ## Library
 
@@ -100,7 +114,8 @@ r.breakdown()  # dict of strings: coefficient, rounding, formula, source_url, ra
 
 fee("polymarket-us", 0.10, 1000, "buy", tier=4).fee  # Decimal('6.26')
 fee("polymarket-us", 0.10, 1000, volume_30d=12_500).fee  # Tier 2
-fee("polymarket", 0.25, 100, category="Crypto").fee  # Decimal('1.31250')
+fee("polymarket", 0.25, 100, category="Crypto", at="2026-11-20T12:00Z").fee  # Decimal('1.31250')
+fee("polymarket", 0.25, 100, category="Crypto", at="2026-11-21T00:00Z").fee  # Decimal('0.18750')
 fee("kalshi", 0.50, 1).fee  # Decimal('0.0175')  centicent rounding, not $0.02
 fee("kalshi", 0.50, 100, maker=True).fee  # Decimal('0.0000')  maker M defaults to 0
 fee("kalshi", 0.50, 100, maker=True, multiplier=1).fee  # Decimal('0.4375')
@@ -111,7 +126,7 @@ b.exit_price, b.move_cents  # (Decimal('0.45'), Decimal('5.00'))
 ```
 
 Signature: `fee(platform, price, contracts, side="buy", tier=None, maker=False, *, category=None,
-multiplier=None, series=None, volume_30d=None, rates=None) -> FeeResult`. Platform names: `kalshi`,
+multiplier=None, series=None, volume_30d=None, at=None, rates=None) -> FeeResult`. Platform names: `kalshi`,
 `polymarket-us`, `polymarket` (also `polymarket.com`). Prices and counts can be `str`, `int`,
 `float` or `Decimal`; floats are converted through `str`, so `0.1` means exactly 0.1.
 
@@ -119,6 +134,56 @@ multiplier=None, series=None, volume_30d=None, rates=None) -> FeeResult`. Platfo
 walks the price in `tick` steps (up for a buy, down for a sell) and returns the first exit price
 where proceeds − cost − entry fee − exit fee > 0, or `exit_price=None` if no price before $1 (or
 $0) works.
+
+## polymarket.com from 2026-11-20 23:59 UTC
+
+Polymarket changes its fees and rebates on polymarket.com at **2026-11-20 23:59 UTC**
+([Upcoming Fee and Rebate Changes](https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026)).
+The formula stays `shares × feeRate × price × (1 − price)`; the category coefficients change, and
+rebates move to tiers on 30-day weighted volume.
+
+The rates file holds both sets (`polymarket_global.schedule`). `fee()`, `fill_fees()` and
+`break_even()` take `at=` (a timezone-aware `datetime` or an ISO 8601 string with an offset; default
+now): a fill before the effective time uses the old rates, a fill at or after it the new ones. In
+`fill_fees()` each fill can carry its own `at`, so fills of one order on both sides of the change are
+each priced with their own rates. Naive times are rejected. A subcategory that only exists after the
+change (`Politics (elections)`) uses its parent category's rate before it.
+
+| Category | Before | From 2026-11-20 23:59 UTC |
+|---|---|---|
+| Crypto, BTC 5- and 15-minute up/down (`Crypto (BTC 5m/15m up/down)`) | 0.07 | 0.05 |
+| Crypto, all other markets | 0.07 | 0.01 |
+| Sports (all, including NFL and college football) | 0.05 | 0.05 |
+| Finance, Tech | 0.04 | 0.05 |
+| Politics, elections (`Politics (elections)`) | 0.04 | 0.05 |
+| Politics, excluding elections and geopolitics | 0.04 | 0.01 |
+| Economics, Culture, Weather | 0.05 | 0.01 |
+| Mentions | 0.04 | 0.01 |
+| Geopolitics | 0 | 0 |
+| Combos, Other / General | 0.05 | 0.05 |
+
+Rebates from the same time, as a share of taker fees: **taker** tiers by the fees you paid (None
+under $200K, Gold 10%, Platinum 25% from $1M, Diamond 40% from $4M, Obsidian 50% from $10M, Onyx 60%
+from $75M), **maker** tiers by the taker fees your eligible maker fills generated (None under $200K,
+Tier 1 3%, Tier 2 7% from $1M, Tier 3 10% from $4M, Tier 4 15% from $10M). The volumes are
+**weighted volume**: each fill adds shares × price × (1 − price), summed over 30 days, maker and
+taker fills separately. Combos and fee-free fills earn no maker rebate.
+
+```python
+from pmfees import polymarket_rebate, polymarket_rebate_tier, weighted_volume
+
+weighted_volume([(0.40, 1000)])  # Decimal('240.00')  not dollar volume ($400)
+polymarket_rebate_tier("taker", 1_500_000, at="2026-11-21T00:00Z").name  # 'Platinum'
+r = polymarket_rebate("maker", 100, tier="Tier 4", at="2026-11-21T00:00Z")
+r.rebate  # Decimal('15.00')  Polymarket's own example
+polymarket_rebate(
+    "maker", 100, weighted_volume_30d=2_500_000, at="2026-11-21T00:00Z"
+).rebate  # Decimal('7.00')
+```
+
+Rebates before the change (category multipliers, Bronze/Silver, daily maker rebate pools) are not
+modelled: `polymarket_rebate()` raises for an earlier `at`. Polymarket documents no rounding for
+rebates, so the amount is exact.
 
 ## Kalshi: centicent rounding and the multiplier
 
@@ -232,12 +297,13 @@ rebate and net fee as strings, ready for JSON.
 | Kalshi | M × 0.07 × C × P × (1 − P), M default 1; maker M × 0.0175 × C × P × (1 − P), M default 0 | Up, so that fee + position cost is a whole centicent ($0.0001) |
 | Polymarket US | Θ × C × p × (1 − p), Θ by 30-day taker volume: 0.095 (< $10K), 0.085 (< $50K), 0.075 (< $250K), 0.0695 ($250K+); new accounts 0.0695 for the first 7 days | Nearest cent, half to even |
 | polymarket.com | C × rate × p × (1 − p), rate by category (Crypto 0.07; Sports, Economics, Culture, Weather, Other, Combos 0.05; Finance, Politics, Mentions, Tech 0.04; Geopolitics 0) | 5 decimals |
+| polymarket.com from 2026-11-20 23:59 UTC | C × rate × p × (1 − p) (Sports, Finance, Tech, Politics elections, Combos, Other, Crypto BTC 5m/15m up/down 0.05; Crypto, Politics, Economics, Culture, Weather, Mentions 0.01; Geopolitics 0) | 5 decimals |
 
 The numbers in this table are for reading only. The code takes every rate, tier, multiplier and
 rounding rule (including Kalshi's fee + position cost basis) from `prediction_market_fees.json`.
 
-Not modelled: Polymarket US combo fees and maker rebates, polymarket.com maker and taker rebate
-programs, polymarket.com per-market `feeSchedule` exceptions, and Kalshi's `flat` fee type
+Not modelled: Polymarket US combo fees and maker rebates, polymarket.com rebate programs before
+2026-11-20 23:59 UTC, polymarket.com per-market `feeSchedule` exceptions, and Kalshi's `flat` fee type
 (Specific Trading Fees Table; no series used it on 2026-11-14). Kalshi's per-series multipliers
 are in `kalshi_series.json` (see above). Check the market when it matters.
 
@@ -249,6 +315,7 @@ are in `kalshi_series.json` (see above). Check the market when it matters.
 | Kalshi series | <https://external-api.kalshi.com/trade-api/v2/series> (`fee_type`, `fee_multiplier`) | 2026-11-14 |
 | Polymarket US | <https://docs.polymarket.us/fees> | 2026-11-15 |
 | polymarket.com | <https://docs.polymarket.com/trading/fees> | 2026-11-08 |
+| polymarket.com from 2026-11-20 23:59 UTC | <https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026> | 2026-11-17 |
 
 The tests lock the formulas to the worked examples and fee tables on these pages, with a link
 to the source in each test.
