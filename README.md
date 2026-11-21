@@ -20,7 +20,8 @@ Exact trading fees for the prediction market platforms **Kalshi**, **Polymarket 
 - No dependencies outside the Python standard library. Typed (`py.typed`).
 
 Rates current as of: Kalshi 2026-11-10 (fee schedule 7.7.26), Polymarket US 2026-11-15,
-polymarket.com 2026-11-08. Each platform's date and source are in the rates file and in every result.
+polymarket.com 2026-11-17 (in force from 2026-11-20 23:59 UTC; earlier fills use the rates as of
+2026-11-08). Each platform's date and source are in the rates file and in every result.
 Kalshi series list as of 2026-11-14.
 
 Other ways to get the same numbers, from the same rates file:
@@ -295,7 +296,7 @@ rebate and net fee as strings, ready for JSON.
 |---|---|---|
 | Kalshi | M × 0.07 × C × P × (1 − P), M default 1; maker M × 0.0175 × C × P × (1 − P), M default 0 | Up, so that fee + position cost is a whole centicent ($0.0001) |
 | Polymarket US | Θ × C × p × (1 − p), Θ by 30-day taker volume: 0.095 (< $10K), 0.085 (< $50K), 0.075 (< $250K), 0.0695 ($250K+); new accounts 0.0695 for the first 7 days | Nearest cent, half to even |
-| polymarket.com | C × rate × p × (1 − p), rate by category (Crypto 0.07; Sports, Economics, Culture, Weather, Other, Combos 0.05; Finance, Politics, Mentions, Tech 0.04; Geopolitics 0) | 5 decimals |
+| polymarket.com before 2026-11-20 23:59 UTC | C × rate × p × (1 − p), rate by category (Crypto 0.07; Sports, Economics, Culture, Weather, Other, Combos 0.05; Finance, Politics, Mentions, Tech 0.04; Geopolitics 0) | 5 decimals |
 | polymarket.com from 2026-11-20 23:59 UTC | C × rate × p × (1 − p) (Sports, Finance, Tech, Politics elections, Combos, Other, Crypto BTC 5m/15m up/down 0.05; Crypto, Politics, Economics, Culture, Weather, Mentions 0.01; Geopolitics 0) | 5 decimals |
 
 The numbers in this table are for reading only. The code takes every rate, tier, multiplier and
@@ -313,7 +314,7 @@ are in `kalshi_series.json` (see above). Check the market when it matters.
 | Kalshi | <https://kalshi.com/docs/kalshi-fee-schedule.pdf> (version 7.7.26) | 2026-11-10 |
 | Kalshi series | <https://external-api.kalshi.com/trade-api/v2/series> (`fee_type`, `fee_multiplier`) | 2026-11-14 |
 | Polymarket US | <https://docs.polymarket.us/fees> | 2026-11-15 |
-| polymarket.com | <https://docs.polymarket.com/trading/fees> | 2026-11-08 |
+| polymarket.com before 2026-11-20 23:59 UTC | <https://docs.polymarket.com/trading/fees> | 2026-11-08 |
 | polymarket.com from 2026-11-20 23:59 UTC | <https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026> | 2026-11-17 |
 
 The tests lock the formulas to the worked examples and fee tables on these pages, with a link

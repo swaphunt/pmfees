@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (2026-11-21)
+
+README only; no change to the code or the rates file.
+
+- The "Rates current as of" line now gives polymarket.com's rates in force since 2026-11-20 23:59 UTC
+  (as of 2026-11-17) and the date of the earlier rates (2026-11-08), instead of only the earlier date.
+- The formula and source tables label the earlier polymarket.com row "before 2026-11-20 23:59 UTC".
+
 ## 0.3.0 (2026-11-17)
 
 polymarket.com fee and rebate changes effective **2026-11-20 23:59 UTC**
