@@ -28,13 +28,23 @@ class ReadmeTest(unittest.TestCase):
 
     def test_rates_dates_match_bundled_file(self) -> None:
         r = load_rates()
+        g = r.polymarket_global
+        # polymarket.com: the headline gives the latest dated period (the rates in force now) and
+        # the date of the rates before it, so it does not go stale after a scheduled change.
+        latest = g.schedule[-1] if g.schedule else None
+        pm = (
+            f"polymarket.com {latest.as_of} (in force from {latest.effective:%Y-%m-%d %H:%M} UTC; earlier "
+            f"fills use the rates as of\n{g.as_of})"
+            if latest
+            else f"polymarket.com {g.as_of}"
+        )
         self.assertIn(
             f"Rates current as of: Kalshi {r.kalshi.as_of} (fee schedule {r.kalshi.version}), "
-            f"Polymarket US {r.polymarket_us.as_of},\npolymarket.com {r.polymarket_global.as_of}.",
+            f"Polymarket US {r.polymarket_us.as_of},\n{pm}.",
             self.text,
         )
-        for platform in (r.kalshi, r.polymarket_us, r.polymarket_global):
-            self.assertIn(f"| {platform.as_of} |", self.text)
+        for as_of in (r.kalshi.as_of, r.polymarket_us.as_of, g.as_of, *(p.as_of for p in g.schedule)):
+            self.assertIn(f"| {as_of} |", self.text)
 
     def test_cli_examples(self) -> None:
         examples = [
